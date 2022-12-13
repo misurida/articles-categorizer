@@ -1,0 +1,50 @@
+{
+  "name": "articles-categorizer",
+  "title": "Articles Categorizer",
+  "description": "Custom Auth-ready AppShell powered by Mantine",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "analyze": "cross-env ANALYZE=true next build"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^3.17.2",
+    "@emotion/react": "^11.10.4",
+    "@emotion/server": "^11.10.0",
+    "@mantine/core": "^5.4.2",
+    "@mantine/dates": "^5.4.2",
+    "@mantine/form": "^5.4.2",
+    "@mantine/hooks": "^5.4.2",
+    "@mantine/modals": "^5.4.2",
+    "@mantine/next": "^5.4.2",
+    "@mantine/notifications": "^5.4.2",
+    "@mantine/nprogress": "^5.4.2",
+    "@mantine/prism": "^5.4.2",
+    "@tabler/icons": "^1.101.0",
+    "date-fns": "^2.29.3",
+    "firebase": "^9.10.0",
+    "next": "12.3.1",
+    "next-i18next": "^12.0.1",
+    "react": "18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-dom": "18.2.0",
+    "react-icons": "^4.4.0"
+  },
+  "devDependencies": {
+    "@next/bundle-analyzer": "^12.3.1",
+    "@types/node": "18.7.23",
+    "@types/react": "18.0.21",
+    "@types/react-beautiful-dnd": "^13.1.2",
+    "@types/react-dom": "18.0.6",
+    "cross-env": "^7.0.3",
+    "eslint": "8.24.0",
+    "eslint-config-next": "12.3.1",
+    "node-xlsx": "^0.21.0",
+    "sass": "^1.55.0",
+    "typescript": "4.8.4"
+  }
+}
