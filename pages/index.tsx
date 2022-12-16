@@ -6,6 +6,7 @@ import { NextPage } from 'next'
 import { useData } from '../hooks/useData'
 import { useEffect, useState } from 'react'
 import { useCosmos } from '../hooks/useCosmos'
+import MantineList from '../components/MantineList'
 
 export async function getStaticProps({ locale }: InternationalizationStaticProps) {
   return { props: { ...(await serverSideTranslations(locale, ["common"])) } }
@@ -23,9 +24,12 @@ const Home: NextPage = () => {
     <Box>
       <Title order={2} mb="md">{t('dashboard')}</Title>
       {articles.length > 0 ? (
-        <pre>
-          {JSON.stringify(articles, null, 4)}
-        </pre>
+        <Box sx={{border: "thin solid #ccc", height: 600}}>
+          <MantineList
+            height={400}
+            items={articles}
+          />
+        </Box>
       ) : (
         <Loader variant='bars' />
       )}

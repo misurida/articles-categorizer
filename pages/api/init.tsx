@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // query
   console.log(`Querying: db=${database}, container=${container}`);
   const querySpec = {
-    query: "SELECT * FROM c OFFSET 0 LIMIT 10",
+    query: "SELECT * FROM c OFFSET 0 LIMIT 100",
   };
 
   // db call

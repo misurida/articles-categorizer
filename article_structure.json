@@ -1,0 +1,92 @@
+{
+  "id": "1443043370625081347",
+  "std": {
+    "body": "__UPLOADED_TO_BLOB__",
+    "source_code": "twitter",
+    "scraper_name": "twitter",
+    "title": "Acrigen Biosciences Raises Seed Financing to Advance Precision Gene Editing Technology and Therapeutic Pipeline https://t.co/EHnyKkhsO9",
+    "publication_datetime": "2021-09-29T02:42:04.000000Z",
+    "lang_code": "en",
+    "url": "https://twitter.com/PharmacDaily/status/1443043370625081347"
+  },
+  "non_std": {
+    "publisher_name": "twitter",
+    "document_type": "tweet",
+    "tags": "",
+    "source_name": "PharmacDaily",
+    "byline": "Pharmacutical Daily",
+    "location": "",
+    "followers_count": 1614,
+    "retweet_count": 0,
+    "word_count": 15,
+    "in_reply_to_id": null,
+    "in_reply_to_screen_name": null
+  },
+  "vers": {
+    "infer_language": 2000002,
+    "process_sections": 1000002,
+    "link_relations": 4000004,
+    "classify_categories": 4000003,
+    "translate_sections": 1000002,
+    "word_count": 1000000
+  },
+  "out": {
+    "infer_language": "en",
+    "process_sections": {
+      "title": "acrigen biosciences raise seed financing advance precision gene editing technology therapeutic pipeline",
+      "body": "acrigen biosciences raise seed financing advance precision gene editing technology therapeutic pipeline"
+    },
+    "link_relations": {
+      "associations": [],
+      "biotech-startups": [],
+      "companies-big-pharma": [],
+      "companies-big-tech": [],
+      "companies-big-swiss": [],
+      "investors": [],
+      "organizations": [],
+      "universities": [],
+      "cities": [],
+      "countries": [],
+      "regions": []
+    },
+    "classify_categories": {
+      "relevance_scores": {
+        "industry_bioinformatics": 0,
+        "industry_genetics & genomics": 10,
+        "industry_immunology": 0,
+        "industry_neurobiology": 0,
+        "industry_oncology": 0,
+        "industry_pharmaceuticals": 10,
+        "industry_digital & consumer health": 10,
+        "industry_process engineering": 0,
+        "news_type_fund raises, grants & prizes": 10,
+        "news_type_general assembly & annual report": 0,
+        "news_type_partnership": 0,
+        "news_type_market & ecosystem studies": 0,
+        "news_type_product announcement & update": 10,
+        "news_type_manufacturing & plants": 0,
+        "news_type_sustainability": 0,
+        "news_type_acquisition": 0,
+        "news_type_clinical trial": 0
+      },
+      "mean_scores": {
+        "mean_score_industry": 3.75,
+        "mean_score_news_type": 2.2222222222222223
+      },
+      "max_scores": {
+        "max_score_industry": 10,
+        "max_score_news_type": 10
+      },
+      "tags": {}
+    },
+    "translate_sections": {
+      "title": "Acrigen Biosciences Raises Seed Financing to Advance Precision Gene Editing Technology and Therapeutic Pipeline https://t.co/EHnyKkhsO9"
+    },
+    "word_count": 15
+  },
+  "_rid": "Q31fAJdGRHZDNwIAAAAAAA==",
+  "_self": "dbs/Q31fAA==/colls/Q31fAJdGRHY=/docs/Q31fAJdGRHZDNwIAAAAAAA==/",
+  "_etag": "\"0e002a36-0000-1600-0000-6391e60f0000\"",
+  "_attachments": "attachments/",
+  "_ts": 1670505999
+}
