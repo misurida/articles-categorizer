@@ -11,9 +11,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const containerID = databaseID.container(container);
 
   // query
-  console.log(`Querying: db=${database}, container=${container}`);
+   
+  let query = "SELECT * FROM c"
+  if(req.query.offset !== undefined && req.query.limit !== undefined && Number(req.query.limit) > 0) {
+    query += ` OFFSET ${req.query.offset} LIMIT ${req.query.limit}`
+  }
+  else if(req.query.limit !== undefined && Number(req.query.limit) > 0) {
+    query += ` OFFSET 0 LIMIT ${req.query.limit}`
+  }
+
   const querySpec = {
-    query: "SELECT * FROM c OFFSET 0 LIMIT 100",
+    query,
   };
 
   // db call

@@ -6,6 +6,7 @@ import { auth, firestore } from '../utils/firebase';
 import { defaultUsermeta } from '../utils/globals';
 import { Upload, UserMeta } from '../types/shell';
 import { mergeLists } from '../utils/helpers';
+import { Article, Category, Dataset } from '../utils/types';
 
 // EDIT HERE... definition of the exposed variables
 interface FirestoreContext {
@@ -38,9 +39,13 @@ export const FirestoreContextProvider = ({ children }: { children: React.ReactNo
   const [currentUsermeta, setCurrentUsermeta] = useState<UserMeta>(defaultUsermeta)
   const [uploads, setUploads] = useState<Upload[]>([])
   const [myUploads, setMyUploads] = useState<Upload[]>([])
+
+  const [collections, setCollections] = useState<Dataset[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [articles, setArticles] = useState<Article[]>([])
   // EDIT HERE... add your custom useState hook to store fetched data (see below).
 
-  // listening to: current user meta data
+  /* // listening to: current user meta data
   useEffect(() => {
     if (auth.currentUser?.uid) {
       // example of item fetching
@@ -65,9 +70,17 @@ export const FirestoreContextProvider = ({ children }: { children: React.ReactNo
     return onSnapshot(query(collection(firestore, 'uploads'), where("isPublic", "==", true)), q => {
       setUploads(q.docs.map(doc => ({ id: doc.id, ...doc.data() } as Upload)) || []);
     });
-  }, [])
+  }, []) */
 
   // EDIT HERE... Add your custom listeners here is useEffect hooks to fetch data.
+  useEffect(() => {
+    if (auth.currentUser?.uid) {
+      // example of collection fetching
+      return onSnapshot(query(collection(firestore, 'collections'), where("userId", "==", auth.currentUser?.uid)), q => {
+        setCollections(q.docs.map(doc => ({ id: doc.id, ...doc.data() } as Dataset)) || []);
+      });
+    }
+  }, [auth.currentUser])
 
   /**
    * Display a generic notification for an error message
@@ -239,7 +252,7 @@ export const FirestoreContextProvider = ({ children }: { children: React.ReactNo
     addItems,
     deleteItems,
     deleteItemsBy,
-    setItem
+    setItem,
   }
 
   return (

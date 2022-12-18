@@ -1,7 +1,6 @@
 import '../styles/globals.css'
 import { ColorScheme, ColorSchemeProvider, MantineProvider, MantineThemeOverride } from '@mantine/core';
 import { useHotkeys, useLocalStorage } from '@mantine/hooks';
-import { CosmosContextProvider } from '../hooks/useCosmos';
 import { DatabaseContextProvider } from '../hooks/useDatabase';
 import { NotificationsProvider } from '@mantine/notifications';
 import { AuthContextProvider } from '../hooks/useAuth';
@@ -11,6 +10,7 @@ import { AppProps } from 'next/app';
 import packageJson from '../package.json'
 import PageLayout from '../components/structure/PageLayout';
 import Head from 'next/head'
+import { FirestoreContextProvider } from '../hooks/useFirestore';
 
 
 function MyApp({ Component, pageProps }: AppProps) {
@@ -57,11 +57,9 @@ function MyApp({ Component, pageProps }: AppProps) {
           <MantineProvider theme={providerTheme}>
             <NotificationsProvider>
               <DatabaseContextProvider>
-                <CosmosContextProvider>
-                    <PageLayout>
-                      <Component {...pageProps} />
-                    </PageLayout>
-                </CosmosContextProvider>
+                <PageLayout>
+                  <Component {...pageProps} />
+                </PageLayout>
               </DatabaseContextProvider>
             </NotificationsProvider>
           </MantineProvider>

@@ -5,7 +5,6 @@ import AuthForm, { UserInfo } from '../components/structure/user/AuthForm'
 import { useTranslation } from 'next-i18next'
 import { NextPage } from 'next'
 import { useAuth } from '../hooks/useAuth'
-import UserForm from '../components/structure/user/UserForm'
 
 export async function getStaticProps({ locale }: InternationalizationStaticProps) {
   return { props: { ...(await serverSideTranslations(locale, ["common"])) } }
@@ -22,7 +21,6 @@ const LoginPage: NextPage = () => {
           <Box>
             <Title mb="md" order={2}>{t('user_profile')}</Title>
             <UserInfo user={user} />
-            <UserForm />
           </Box>
         ) : (
           <Box>

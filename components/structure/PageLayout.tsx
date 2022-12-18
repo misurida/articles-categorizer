@@ -56,23 +56,6 @@ export default function PageLayout(props: {
       }}
       navbarOffsetBreakpoint="sm"
       asideOffsetBreakpoint="sm"
-      navbar={
-        <Navbar p="md" hiddenBreakpoint="sm" hidden={!opened} width={{ sm: 200, lg: 300 }}>
-          <MediaQuery largerThan="sm" styles={{ display: 'none' }}>
-            <Navbar.Section mb="md">
-              <Group position='center'>
-                <HeaderActions />
-              </Group>
-            </Navbar.Section>
-          </MediaQuery>
-          <MediaQuery largerThan="sm" styles={{ display: 'none' }}>
-            <Box mb="md">
-              <NavigationMenu links={headerMenu} horizontal style={{ textAlign: "center" }} />
-            </Box>
-          </MediaQuery>
-          <NavigationMenu links={lateralMenu} />
-        </Navbar>
-      }
       header={
         <Header height={70} p="md" >
           <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
@@ -87,8 +70,8 @@ export default function PageLayout(props: {
             </MediaQuery>
             <Group sx={{ width: "100%" }}>
               <Stack mr="lg" spacing={0} onClick={() => router.push('/')} sx={{ cursor: "pointer", transition: "opacity .2s", userSelect: "none", "&:hover": { opacity: 0.5 } }}>
-                <Title size="md" order={1}>AppShell</Title>
-                <Text size="xs">Firebase+Mantine</Text>
+                <Title size="md" order={1}>Effixis</Title>
+                <Text size="xs">Articles Categorizer</Text>
               </Stack>
               <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
                 <Box>

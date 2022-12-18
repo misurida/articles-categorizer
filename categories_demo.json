@@ -1,0 +1,515 @@
+[
+  {
+    "color": "#1c73ff",
+    "id": "bbadf024-2b7d-4951-803c-db60a12ca5d4",
+    "key": "bioinformatics",
+    "legacy_key": "industry_bioinformatics",
+    "name": "Bioinformatics",
+    "rules": [
+      {
+        "hook": "biodiversity informatics"
+      },
+      {
+        "hook": "bioinformaticians"
+      },
+      {
+        "hook": "bioinformatics"
+      },
+      {
+        "hook": "biostatistics"
+      },
+      {
+        "hook": "cellular organization"
+      },
+      {
+        "hook": "cheminformatics"
+      },
+      {
+        "hook": "comparative genomics"
+      },
+      {
+        "hook": "computational biology"
+      },
+      {
+        "hook": "computational biotechnology"
+      },
+      {
+        "hook": "deepcdr"
+      },
+      {
+        "hook": "dna sequencing"
+      },
+      {
+        "hook": "evolutionary genomics"
+      },
+      {
+        "hook": "gene expression"
+      },
+      {
+        "hook": "gene function prediction"
+      },
+      {
+        "hook": "genome annotation"
+      },
+      {
+        "hook": "image processing"
+      },
+      {
+        "hook": "protein expression"
+      },
+      {
+        "hook": "protein folding"
+      },
+      {
+        "hook": "protein localization"
+      },
+      {
+        "hook": "rna sequencing"
+      },
+      {
+        "hook": "sequence assemby"
+      },
+      {
+        "hook": "signal processing"
+      }
+    ],
+    "threshold": 3.2
+  },
+  {
+    "color": "#161273",
+    "id": "123ad9cc-fee6-40cf-b439-b1df58ef8d02",
+    "key": "genetics__genomics",
+    "legacy_key": "industry_genetics & genomics",
+    "name": "Genetics & Genomics",
+    "rules": [
+      {
+        "hook": "alternative splicing"
+      },
+      {
+        "hook": "dna|rna"
+      },
+      {
+        "hook": "genes"
+      },
+      {
+        "hook": "genetics|genomics"
+      },
+      {
+        "hook": "genome"
+      },
+      {
+        "hook": "genotype"
+      },
+      {
+        "hook": "HapMap"
+      },
+      {
+        "hook": "metabolomics"
+      },
+      {
+        "hook": "metagenomics"
+      },
+      {
+        "hook": "mutation"
+      },
+      {
+        "hook": "neogenomics"
+      },
+      {
+        "hook": "pharmacogenomics"
+      },
+      {
+        "hook": "phenotype"
+      },
+      {
+        "hook": "proteomics"
+      },
+      {
+        "hook": "sequencing"
+      },
+      {
+        "hook": "stem cells"
+      }
+    ],
+    "threshold": 4.1000000000000005
+  },
+  {
+    "color": "#24610c",
+    "id": "d987f8cc-2fbd-422e-88af-263d2b41f12a",
+    "key": "immunology",
+    "legacy_key": "industry_immunology",
+    "name": "Immunology",
+    "rules": [
+      {
+        "hook": "allergen"
+      },
+      {
+        "hook": "allergic"
+      },
+      {
+        "hook": "antibody"
+      },
+      {
+        "hook": "antibody"
+      },
+      {
+        "hook": "antigen"
+      },
+      {
+        "hook": "bacteria"
+      },
+      {
+        "hook": "disease"
+      },
+      {
+        "hook": "immune system"
+      },
+      {
+        "hook": "immune"
+      },
+      {
+        "hook": "immunology"
+      },
+      {
+        "hook": "immunotoxicity"
+      },
+      {
+        "hook": "lymphocyte"
+      },
+      {
+        "hook": "monocyte"
+      },
+      {
+        "hook": "mutation"
+      },
+      {
+        "hook": "pathogen"
+      },
+      {
+        "hook": "vaccine"
+      },
+      {
+        "hook": "variant"
+      },
+      {
+        "hook": "virus"
+      }
+    ],
+    "threshold": 0
+  },
+  {
+    "color": "#4322a8",
+    "id": "47af63c1-c7c9-4d0b-a513-bf9cd06ac561",
+    "key": "neurobiology",
+    "legacy_key": "industry_neurobiology",
+    "name": "Neurobiology",
+    "rules": [
+      {
+        "hook": "alzheimer"
+      },
+      {
+        "hook": "amnesia"
+      },
+      {
+        "hook": "amygdala"
+      },
+      {
+        "hook": "brain mapping"
+      },
+      {
+        "hook": "brain"
+      },
+      {
+        "hook": "cerebral cortex"
+      },
+      {
+        "hook": "consciousness"
+      },
+      {
+        "hook": "cortex"
+      },
+      {
+        "hook": "courtine"
+      },
+      {
+        "hook": "demencia"
+      },
+      {
+        "hook": "gray matter"
+      },
+      {
+        "hook": "hippocampus"
+      },
+      {
+        "hook": "human brain project"
+      },
+      {
+        "hook": "limbic system"
+      },
+      {
+        "hook": "mindmaze"
+      },
+      {
+        "hook": "nervous system"
+      },
+      {
+        "hook": "neurobiology"
+      },
+      {
+        "hook": "neurocycle"
+      },
+      {
+        "hook": "neuroimaging"
+      },
+      {
+        "hook": "neurons"
+      },
+      {
+        "hook": "neuroplasticity"
+      },
+      {
+        "hook": "neuroscience"
+      },
+      {
+        "hook": "neurotransmitters"
+      },
+      {
+        "hook": "parkinson"
+      },
+      {
+        "hook": "synapse"
+      }
+    ],
+    "threshold": 0
+  },
+  {
+    "color": "#f2db27",
+    "id": "2f1906f6-7f8d-4cd2-8e24-0dd208d0a311",
+    "key": "oncology",
+    "legacy_key": "industry_oncology",
+    "name": "Oncology",
+    "rules": [
+      {
+        "hook": "adenoma"
+      },
+      {
+        "hook": "apoptosis"
+      },
+      {
+        "hook": "breast"
+      },
+      {
+        "hook": "cancer"
+      },
+      {
+        "hook": "cells"
+      },
+      {
+        "hook": "chemotherapy"
+      },
+      {
+        "hook": "colon"
+      },
+      {
+        "hook": "immunotherapy"
+      },
+      {
+        "hook": "lung"
+      },
+      {
+        "hook": "lymphoma"
+      },
+      {
+        "hook": "melanoma"
+      },
+      {
+        "hook": "metastasis"
+      },
+      {
+        "hook": "oncogenesis"
+      },
+      {
+        "hook": "oncology"
+      },
+      {
+        "hook": "prostate"
+      },
+      {
+        "hook": "radiotherapy"
+      },
+      {
+        "hook": "treatment"
+      },
+      {
+        "hook": "tumor"
+      }
+    ],
+    "threshold": 0
+  },
+  {
+    "color": "#bf6141",
+    "id": "151badab-9a38-437d-a537-0f39fc78ed5e",
+    "key": "pharmaceuticals",
+    "legacy_key": "industry_pharmaceuticals",
+    "name": "Pharmaceuticals",
+    "rules": [
+      {
+        "hook": "biologic product"
+      },
+      {
+        "hook": "clinical study"
+      },
+      {
+        "hook": "clinical trials"
+      },
+      {
+        "hook": "control group"
+      },
+      {
+        "hook": "drug delivery"
+      },
+      {
+        "hook": "drug"
+      },
+      {
+        "hook": "generic drug"
+      },
+      {
+        "hook": "in vitro"
+      },
+      {
+        "hook": "in vivo"
+      },
+      {
+        "hook": "medicines"
+      },
+      {
+        "hook": "pharma"
+      },
+      {
+        "hook": "pharmaceuticals"
+      },
+      {
+        "hook": "placebo"
+      },
+      {
+        "hook": "preclinical"
+      },
+      {
+        "hook": "therapeutics|therapeutic"
+      },
+      {
+        "hook": "toxicology"
+      },
+      {
+        "hook": "vaccine"
+      }
+    ],
+    "threshold": 2.9000000000000004
+  },
+  {
+    "color": "#56a7c4",
+    "id": "85692a99-d1e9-4d53-9d8e-8d414450421b",
+    "key": "digital__consumer_health",
+    "legacy_key": "industry_digital & consumer health",
+    "name": "Digital & Consumer Health",
+    "rules": [
+      {
+        "hook": "app"
+      },
+      {
+        "hook": "blood pressure"
+      },
+      {
+        "hook": "blood"
+      },
+      {
+        "hook": "digital biomarkers"
+      },
+      {
+        "hook": "digital"
+      },
+      {
+        "hook": "fitness"
+      },
+      {
+        "hook": "health"
+      },
+      {
+        "hook": "heart rate monitor"
+      },
+      {
+        "hook": "social media"
+      },
+      {
+        "hook": "tech|technology"
+      },
+      {
+        "hook": "watch"
+      },
+      {
+        "hook": "web app"
+      },
+      {
+        "hook": "well-beeing|well-beeing"
+      }
+    ]
+  },
+  {
+    "color": "#912a2a",
+    "id": "66e1d965-38f1-4da9-88a7-d8a7af81ab56",
+    "key": "process_engineering",
+    "legacy_key": "industry_process engineering",
+    "name": "Process Engineering",
+    "rules": [
+      {
+        "hook": "bioenergy"
+      },
+      {
+        "hook": "biofuel"
+      },
+      {
+        "hook": "bioprocess"
+      },
+      {
+        "hook": "bioreactor"
+      },
+      {
+        "hook": "chemical reactor"
+      },
+      {
+        "hook": "crystallization"
+      },
+      {
+        "hook": "electrochemistry"
+      },
+      {
+        "hook": "electrolysis"
+      },
+      {
+        "hook": "enzyme kinetics"
+      },
+      {
+        "hook": "extraction"
+      },
+      {
+        "hook": "kinetics"
+      },
+      {
+        "hook": "manufacturing"
+      },
+      {
+        "hook": "miniaturisation"
+      },
+      {
+        "hook": "pH"
+      },
+      {
+        "hook": "reaction rate"
+      },
+      {
+        "hook": "waste treatment"
+      }
+    ]
+  }
+]

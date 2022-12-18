@@ -1,3 +1,4 @@
+
 /**
  * Check if the argument is an object.
  * 
@@ -243,7 +244,7 @@ export const getStringPart = (str: string, part: number | 'last' = 'last', separ
  * @param arr An array of objects to clean.
  * @returns 
  */
- export const naOmit = (arr: any[]) => {
+export const naOmit = (arr: any[]) => {
   return arr.map(e => {
     let item = e;
     for (const p in item) {
@@ -261,7 +262,7 @@ export const getStringPart = (str: string, part: number | 'last' = 'last', separ
  * @param obj The object to clean.
  * @returns The clean object.
  */
- export function cleanObject<T>(obj: T): T {
+export function cleanObject<T>(obj: T): T {
   for (const p in obj) {
     const item: any = obj[p];
     if (!p.length || item === "" || (Array.isArray(item) && !item.length) || (typeof item === "object" && !Object.keys(item).length)) {
@@ -317,7 +318,7 @@ export const getContrastColor = (color: string) => {
  * 
  * @param content The data to write in the file.
  * @param fileName The file name.
- * @param contentType The file contentType.
+ * @param contentType The file contentType (for JSON: application/json)
  */
 export function download(content: string, fileName: string, contentType: string) {
   const a = document.createElement("a");
@@ -413,7 +414,7 @@ export const norm = (str: string) => {
  * @see https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
  * @returns A random string.
  */
- export function uuidv4() {
+export function uuidv4() {
   var d = new Date().getTime();//Timestamp
   var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now() * 1000)) || 0;//Time in microseconds since page-load or 0 if unsupported
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -453,4 +454,78 @@ export const buildInitials = (name: string) => {
   return (
     (initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')
   ).toUpperCase();
+}
+
+
+export const stringToKey = (value: string) => {
+  return value.normalize("NFD").toLowerCase().replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_").replace(/[^\w]/g, "")
+}
+
+export const average = (arr: number[]) => {
+  return arr.reduce((a, b) => a + b, 0) / arr.length
+}
+
+export const getWordsFrequency = (arr: string[]) => {
+  const map: Record<string, number> = {}
+  let maxFreq = 1
+  let maxFreqName = ""
+  for (const e of arr) {
+    if (map[e]) {
+      map[e]++
+      if (maxFreq < map[e]) {
+        maxFreq = map[e]
+        maxFreqName = e
+      }
+    }
+    else {
+      map[e] = 1
+    }
+  }
+  return {
+    map,
+    maxFreq,
+    maxFreqName,
+    avgFreq: average(Object.values(map))
+  };
+}
+
+export const countFrequencies = (hooks: string[], pool: string[]) => {
+  let count = 0;
+  for (const p of pool) {
+    if (hooks.includes(p)) {
+      count++
+    }
+  }
+  return count
+}
+
+/**
+ * 
+ * 
+ * @see https://stackoverflow.com/questions/8051975/access-object-child-properties-using-a-dot-notation-string
+ * @param obj 
+ * @param desc 
+ * @returns 
+ */
+export function getObjectValue(obj: any, target: string) {
+  var arr = target.split(".");
+  while (arr.length && (obj = obj[(arr.shift() as any)]));
+  return obj;
+}
+
+export function extractStringsList(obj: any[], target: string): string[] {
+  const sel = obj.map(e => getObjectValue(e, target)).filter(e => !!e).filter(e => e.toString())
+  return removeDuplicates(sel)
+}
+
+export function removeDuplicatesBy(arr: any[], by = "id") {
+  const uniqueIds: string[] = [];
+  return arr.filter(element => {
+    const isDuplicate = uniqueIds.includes(element[by]);
+    if (!isDuplicate) {
+      uniqueIds.push(element[by]);
+      return true;
+    }
+    return false;
+  });
 }
