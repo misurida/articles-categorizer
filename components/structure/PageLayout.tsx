@@ -54,8 +54,14 @@ export default function PageLayout(props: {
           background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[0],
         },
       }}
-      navbarOffsetBreakpoint="sm"
-      asideOffsetBreakpoint="sm"
+      navbarOffsetBreakpoint={99999}
+      navbar={
+        <MediaQuery largerThan="sm" styles={{ display: 'none' }}>
+          <Navbar p="md" hidden={!opened} width={{ sm: 200, lg: 300 }}>
+            <HeaderActions />
+          </Navbar>
+        </MediaQuery>
+      }
       header={
         <Header height={70} p="md" >
           <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
@@ -73,11 +79,6 @@ export default function PageLayout(props: {
                 <Title size="md" order={1}>Effixis</Title>
                 <Text size="xs">Articles Categorizer</Text>
               </Stack>
-              <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
-                <Box>
-                  <NavigationMenu links={headerMenu} horizontal />
-                </Box>
-              </MediaQuery>
               <MediaQuery smallerThan="sm" styles={{ display: 'none' }}>
                 <Box ml="auto">
                   <HeaderActions />

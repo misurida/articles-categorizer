@@ -1,5 +1,5 @@
-import { Box, Button, Modal, Stack, Switch, Title, Tooltip } from "@mantine/core";
-import { IconPlus } from "@tabler/icons";
+import { Box, Button, Modal, Paper, Popover, Stack, Switch, Title, Tooltip, Text, Input, Tabs } from "@mantine/core";
+import { IconCheck, IconChevronDown, IconPlus } from "@tabler/icons";
 import { useMemo, useState } from "react";
 import { useDatabase } from "../hooks/useDatabase";
 import { Category } from "../utils/types";
@@ -7,14 +7,15 @@ import { useAuth } from "../hooks/useAuth";
 import { NodeModel } from "@minoru/react-dnd-treeview";
 import CategoriesTree from "./CategoriesTree";
 import CategoryForm from "./CategoryForm";
+import { showNotification } from "@mantine/notifications";
+import { TabsValue } from "@mantine/core/lib/Tabs";
 
 
 export default function CategoriesManager(props: {
   selection: string[]
-  onSelect: (item?: Category) => void
 }) {
 
-  const { dataset, addCategory, updateCategory, deleteCategory, updateCategories, setCategories, andMode: orMode, setAndMode: setOrMode, selectedCategories } = useDatabase()
+  const { dataset, addCategory, updateCategory, deleteCategory, updateCategories, andMode, setAndMode, selectedCategories, categoryRowDetails, setCategoryRowDetails, toggleCategory, setSelectedCategories } = useDatabase()
   const [showNew, setShowNew] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<Category | undefined>()
@@ -40,20 +41,47 @@ export default function CategoriesManager(props: {
 
   const handleUpdate = (values: Category) => {
     updateCategory(values, user?.uid)
+    showNotification({ message: "Category updated!", color: "green", icon: <IconCheck size={18} /> })
     setShowEdit(false)
   }
 
   const onSelect = (item: NodeModel) => {
-    props.onSelect(categories.find(c => c.id === item.id))
+    toggleCategory(item as any) // only the id is used
+    // selecting the category for quick keywords edition
+    if (selectedCategories.includes(item.id.toString())) {
+      if (selectedCategories.length > 0) {
+        setSelectedCategory(categories.find(e => selectedCategories[0] === e.id))
+      }
+      else {
+        setSelectedCategory(undefined)
+      }
+    }
+    else {
+      setSelectedCategory(categories.find(c => c.id === item.id))
+    }
   }
 
   const onDelete = (item: NodeModel) => {
     deleteCategory(categories.find(c => c.id === item.id), user?.uid)
+    showNotification({ message: "Category deleted!", color: "green", icon: <IconCheck size={18} /> })
+    setShowEdit(false)
+  }
+
+  const handleChangeDisplay = (target: string, value: boolean) => {
+    setCategoryRowDetails({ ...categoryRowDetails, [target]: value })
+  }
+
+  const setActiveTab = (value: TabsValue) => {
+    setSelectedCategory(categories.find(c => c.id === value))
+  }
+
+  const unselectAll = () => {
+    setSelectedCategories([])
   }
 
   return (
-    <Box sx={{ display: "inline-block", margin: "0 auto" }}>
-      <Title order={2} mb="md" sx={{ textAlign: "left" }}>Categories</Title>
+    <Box sx={{ display: "inline-block", margin: "0 auto", padding: 0 }}>
+      <Title order={2} mb="md" sx={{ textAlign: "left", margin: "5px 0" }} size="xl">Categories</Title>
       <CategoriesTree
         data={categories || []}
         onChange={onTreeChange}
@@ -64,16 +92,50 @@ export default function CategoriesManager(props: {
         buttonChildren={(
           <>
             <Button compact leftIcon={<IconPlus size={16} />} onClick={() => setShowNew(true)}>Add new</Button>
-            {selectedCategories.length > 0 && (
-              <Tooltip withArrow label="AND / OR selection mode">
-                <Stack align="flex-start">
-                  <Switch size="md" onLabel="AND" offLabel="OR" checked={orMode} onChange={(event) => setOrMode(event.currentTarget.checked)} />
+            <Popover position="bottom" withArrow shadow="lg">
+              <Popover.Target>
+                <Button compact variant='default' rightIcon={<IconChevronDown size={16} />}>
+                  <Text weight="normal">Options</Text>
+                </Button>
+              </Popover.Target>
+              <Popover.Dropdown sx={{ maxWidth: "90vw" }}>
+                <Button mb="xs" fullWidth variant="default" onClick={unselectAll}>Unselect all</Button>
+                {selectedCategories.length > 0 && (
+                  <Input.Wrapper mb="md" label="Category selection mode" description="Affect the articles filtering">
+                    <Stack align="flex-start">
+                      <Switch size="md" onLabel="AND" offLabel="OR" checked={andMode} onChange={(event) => setAndMode(event.currentTarget.checked)} />
+                    </Stack>
+                  </Input.Wrapper>
+                )}
+                <Text mb="md">Category displayed info</Text>
+                <Stack spacing="xs">
+                  <Switch label="Color" checked={!!categoryRowDetails.color} onChange={(event) => handleChangeDisplay('color', event.currentTarget.checked)} />
+                  <Switch label="Display button" checked={!!categoryRowDetails.display_button} onChange={(event) => handleChangeDisplay('display_button', event.currentTarget.checked)} />
+                  <Switch label="Edit button" checked={!!categoryRowDetails.edit_button} onChange={(event) => handleChangeDisplay('edit_button', event.currentTarget.checked)} />
+                  <Switch label="Count" checked={!!categoryRowDetails.count} onChange={(event) => handleChangeDisplay('count', event.currentTarget.checked)} />
                 </Stack>
-              </Tooltip>
-            )}
+              </Popover.Dropdown>
+            </Popover>
           </>
         )}
       />
+
+      {selectedCategories.length > 0 && (
+        <Paper withBorder p="sm">
+          <Tabs mb="xs" value={selectedCategory?.id} onTabChange={setActiveTab} sx={{ maxWidth: "max(400px, 35vw)" }}>
+            <Tabs.List>
+              {categories.filter(c => selectedCategories.includes(c.id)).map(e => (
+                <Tabs.Tab key={e.id} value={e.id}>{e.name}</Tabs.Tab>
+              ))}
+            </Tabs.List>
+          </Tabs>
+          <CategoryForm
+            minimal
+            onSubmit={handleUpdate}
+            category={selectedCategory}
+          />
+        </Paper>
+      )}
 
       <Modal
         opened={showNew}
@@ -95,6 +157,7 @@ export default function CategoriesManager(props: {
         <CategoryForm
           onSubmit={handleUpdate}
           category={selectedCategory}
+          onDelete={val => onDelete(val as any)}
         />
       </Modal>
     </Box>

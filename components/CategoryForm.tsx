@@ -1,11 +1,36 @@
-import React, { useEffect, useState } from "react";
-import { TextInput, Group, Button, Input, Stack, ActionIcon, Box, Collapse, Tooltip, MultiSelect, Switch, NumberInput, Paper, Modal, JsonInput, ColorInput, Slider } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { TextInput, Group, Button, Stack, ActionIcon, Box, Collapse, Tooltip, MultiSelect, Switch, NumberInput, Paper, Modal, JsonInput, ColorInput, Text, createStyles, Popover } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Category, KeywordRule, SectionName } from "../utils/types";
 import { stringToKey } from "../utils/helpers";
 import { IconEdit, IconMinus, IconPlus } from "@tabler/icons";
 
 
+const useStyles = createStyles((theme) => ({
+  keywordsList: {
+    display: "inline-block",
+    paddingLeft: "0.5em",
+    width: "100%",
+    fontSize: 12
+  },
+  keywordsRow: {
+    display: "flex",
+    alignItems: "start",
+    "& > *:first-of-type": {
+      minWidth: 20,
+      marginTop: 5
+    },
+    "& > *:last-child": {
+      flex: 1,
+      width: "100%"
+    }
+  },
+  hookInput: {
+    "input": {
+      height: 28
+    }
+  }
+}))
 
 
 export function RuleInput(props: {
@@ -14,6 +39,7 @@ export function RuleInput(props: {
   onDelete: () => void
 }) {
 
+  const { classes } = useStyles()
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   const onMustContainAnyChange = (value: string[]) => {
@@ -45,6 +71,7 @@ export function RuleInput(props: {
       <Stack spacing={5}>
         <Group spacing={5}>
           <TextInput
+            className={classes.hookInput}
             sx={{ flex: 1 }}
             withAsterisk
             placeholder="Enter rule hook..."
@@ -132,8 +159,11 @@ export function RuleInput(props: {
 export default function CategoryForm(props: {
   category?: Category
   onSubmit: (values: Category) => void
+  minimal?: boolean
+  onDelete?: (values: Category) => void
 }) {
 
+  const { classes } = useStyles()
   const [showAddMultiple, setShowAddMultiple] = useState(false)
   const [multipleValue, setMultipleValue] = useState("")
 
@@ -203,64 +233,79 @@ export default function CategoryForm(props: {
       createMultipleHooks(v)
       cancelMultiple()
     }
+  }
 
+  const onDelete = () => {
+    if (props.onDelete && props.category) {
+      props.onDelete(props.category)
+    }
   }
 
   return (
     <Box>
       <form onSubmit={form.onSubmit(props.onSubmit)}>
         <Stack>
-          <TextInput
-            withAsterisk
-            label="Name"
-            placeholder="Category name..."
-            value={form.values.name}
-            onChange={e => onNameChange(e.target.value)}
-          />
-          <TextInput
-            withAsterisk
-            label="Key"
-            placeholder="Category key..."
-            {...form.getInputProps('key')}
-          />
-          <TextInput
-            label="Legacy key"
-            placeholder="Category key..."
-            {...form.getInputProps('legacy_key')}
-          />
-          <ColorInput
-            label="Category color"
-            placeholder="A color to help identify the category..."
-            {...form.getInputProps('color')}
-          />
-          <Input.Wrapper label="Score threshold">
-            <Slider
-              mb="md"
-              label={(value) => `${value.toFixed(1)}`}
-              {...form.getInputProps('threshold')}
-              min={0}
-              max={10}
-              step={0.1}
-              marks={Array.from({ length: 11 }, (_, i) => i + 0).map(i => ({ value: i, label: String(i) }))}
-            />
-          </Input.Wrapper>
-
-          <Input.Wrapper label="Rules">
-            <Stack spacing={5}>
-              <Group spacing="xs">
-                <Button onClick={addRule} variant="default" leftIcon={<IconPlus size={14} />} compact>Add new rule</Button>
-                <Button onClick={() => setShowAddMultiple(true)} variant="subtle" color="gray" leftIcon={<IconPlus size={14} />} compact>Add multiple</Button>
-              </Group>
-              <ol style={{ padding: 0, margin: 0, paddingLeft: "1.25em" }}>
-                {(form.values.rules || []).map((r, i) => (
-                  <li key={i}>
-                    <RuleInput rule={r} onChange={e => onRuleChange(e, i)} onDelete={() => onRuleDelete(i)}></RuleInput>
-                  </li>
-                ))}
-              </ol>
-            </Stack>
-          </Input.Wrapper>
+          {!props.minimal && (
+            <>
+              <TextInput
+                withAsterisk
+                label="Name"
+                placeholder="Category name..."
+                value={form.values.name}
+                onChange={e => onNameChange(e.target.value)}
+              />
+              <TextInput
+                withAsterisk
+                label="Key"
+                placeholder="Category key..."
+                {...form.getInputProps('key')}
+              />
+              <TextInput
+                label="Legacy key"
+                placeholder="Category key..."
+                {...form.getInputProps('legacy_key')}
+                value={form.values.legacy_key || ""}
+              />
+              <ColorInput
+                label="Category color"
+                placeholder="A color to help identify the category..."
+                {...form.getInputProps('color')}
+                value={form.values.color || ""}
+              />
+              <Text size="sm">Rules</Text>
+            </>
+          )}
+          <Stack spacing={5}>
+            <Group spacing="xs">
+              <Button onClick={addRule} variant="default" leftIcon={<IconPlus size={14} />} compact>Add new rule</Button>
+              <Button onClick={() => setShowAddMultiple(true)} variant="subtle" color="gray" leftIcon={<IconPlus size={14} />} compact>Add multiple</Button>
+            </Group>
+            <div className={classes.keywordsList}>
+              {(form.values.rules || []).map((r, i) => (
+                <div className={classes.keywordsRow} key={i}>
+                  <Text sx={{ fontSize: "inherit" }}>{i + 1}.</Text>
+                  <RuleInput rule={r} onChange={e => onRuleChange(e, i)} onDelete={() => onRuleDelete(i)}></RuleInput>
+                </div>
+              ))}
+            </div>
+          </Stack>
           <Group position="right">
+            {props.onDelete && (
+              <Popover>
+                <Popover.Target>
+                  <Button color="red" mr="auto">Delete</Button>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <Text>You&apos;re about to delete the category:</Text>
+                  <Text weight="bold" my={5}>&laquo; {props.category?.name} &raquo;</Text>
+                  <Text>Are you sure?</Text>
+                  <Group mt="md" position="right">
+                    <Button compact variant="default">Cancel</Button>
+                    <Button compact color="red" onClick={onDelete}>Confirm</Button>
+                  </Group>
+                </Popover.Dropdown>
+              </Popover>
+            )}
             <Button type="submit">{props.category?.id ? "Save" : "Create"}</Button>
           </Group>
         </Stack>

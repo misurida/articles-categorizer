@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { memo, useEffect, useMemo, useState } from 'react';
 import memoize from 'memoize-one';
 import { FixedSizeList as List, areEqual } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { ActionIcon, Badge, Group, Stack, TextInput, Tooltip, createStyles, Text, Paper, Button, Popover, MediaQuery, Menu, Indicator, Anchor, Slider, CloseButton, ColorSwatch, useMantineTheme, HoverCard } from '@mantine/core';
 import { format } from 'date-fns';
-import { Article, Category } from '../utils/types';
-import { IconChevronDown, IconHeart, IconSearch, IconSortAscending, IconSortDescending, IconViewfinder, IconX, IconZoomCancel } from '@tabler/icons';
+import { Article, Category, DisplaySources } from '../utils/types';
+import { IconChevronDown, IconSearch, IconSortAscending, IconSortDescending, IconViewfinder, IconX, IconZoomCancel } from '@tabler/icons';
 import { getScore, passScoreTest, useDatabase } from '../hooks/useDatabase';
-import { useAuth } from '../hooks/useAuth';
-import { getContrastColor } from '../utils/helpers';
+import { getContrastColor, maxDecimal } from '../utils/helpers';
 import FiltersPanel from './FilterPanel';
 import { useDebouncedValue } from '@mantine/hooks';
+import DisplayOptionsPanel from './DisplayOptionsPanel';
 
 const useStyles = createStyles((theme) => ({
   row: {
@@ -43,7 +43,7 @@ const useStyles = createStyles((theme) => ({
   },
   searchInput: {
     flex: 1,
-    [`@media (max-width: ${theme.breakpoints.xs}px)`]: {
+    [`@media (max-width: ${theme.breakpoints.sm}px)`]: {
       // Type safe child reference in nested selectors via ref
       marginBottom: 5
     },
@@ -52,7 +52,7 @@ const useStyles = createStyles((theme) => ({
     display: "flex",
     gap: 5,
     flexWrap: "wrap",
-    [`@media (max-width: ${theme.breakpoints.xs}px)`]: {
+    [`@media (max-width: ${theme.breakpoints.sm}px)`]: {
       // Type safe child reference in nested selectors via ref
       display: "inline-block",
       textAlign: "right"
@@ -62,7 +62,7 @@ const useStyles = createStyles((theme) => ({
     display: "grid",
     gridTemplateColumns: "repeat( auto-fit, minmax(400px, 1fr) )",
     gridGap: 5,
-    [`@media (max-width: ${theme.breakpoints.xs}px)`]: {
+    [`@media (max-width: ${theme.breakpoints.sm}px)`]: {
       // Type safe child reference in nested selectors via ref
       maxWidth: "90vw",
     },
@@ -79,6 +79,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 3,
     flexShrink: 2,
     flexBasis: 200,
+    maxWidth: "92vw"
   },
   filterName: {
 
@@ -96,8 +97,34 @@ const useStyles = createStyles((theme) => ({
     padding: 2,
     borderRadius: 15,
   },
+  scoresWrapperGrid: {
+    display: "grid",
+    "& > *": {
+      minWidth: 20
+    }
+  },
+  noPad: {
+    padding: "0 2px",
+    opacity: 0
+  },
   score: {
 
+  },
+  customTooltip: {
+    display: "flex",
+    flexDirection: "column",
+    "& > span": {
+      fontSize: "1em",
+      opacity: 0.8
+    },
+    "& > span:first-of-type": {
+      borderBottom: "thin solid rgba(255,255,255,0.5)",
+      fontSize: "1.2em",
+      opacity: 1
+    }
+  },
+  noScore: {
+    opacity: 0.25
   }
 }));
 
@@ -105,17 +132,16 @@ const useStyles = createStyles((theme) => ({
 
 export function ScoreFilter(props: {
   category: Category
-  onChange: (value: number) => void
-  onRemove: () => void
 }) {
 
   const { classes } = useStyles()
-  const [localValue, setLocalValue] = useState(props.category.threshold || 0)
+  const { thresholds, toggleCategory, setScoresThresholds, scoresThresholds, scoreDisplaySource } = useDatabase()
+  const [localValue, setLocalValue] = useState(0)
   const { sortByScore, setSortByScore, sortAsc, setSortAsc } = useDatabase()
 
   useEffect(() => {
-    setLocalValue(props.category.threshold || 0)
-  }, [props.category.threshold])
+    setLocalValue(scoresThresholds[scoreDisplaySource || "auto"]?.[props.category.key] || 0)
+  }, [scoresThresholds, props.category, scoreDisplaySource])
 
   const handlesSort = (asc: boolean) => {
     // remove the filter
@@ -130,6 +156,21 @@ export function ScoreFilter(props: {
     }
   }
 
+  const updateScore = useCallback(
+    (val: number) => {
+      let t = JSON.parse(JSON.stringify(thresholds))
+      t[props.category.key] = val
+      setScoresThresholds({ ...scoresThresholds, [scoreDisplaySource || "auto"]: t })
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scoresThresholds, thresholds, scoreDisplaySource, props.category.key],
+  )
+
+
+  const unselectCategory = () => {
+    toggleCategory(props.category)
+  }
+
   return (
     <div className={classes.scoreFilter}>
       <Text className={classes.filterName}>{props.category.name}</Text>
@@ -140,9 +181,17 @@ export function ScoreFilter(props: {
           max={10}
           label={e => e.toFixed(1)}
           step={0.1}
+          styles={props.category.color ? ({
+            thumb: {
+              borderColor: props.category.color
+            },
+            bar: {
+              background: props.category.color
+            }
+          }) : undefined}
           value={localValue}
           onChange={setLocalValue}
-          onChangeEnd={props.onChange}
+          onChangeEnd={updateScore}
         />
         <Text>{localValue.toFixed(1)}</Text>
         <Tooltip withArrow label="Sort ascending">
@@ -155,9 +204,57 @@ export function ScoreFilter(props: {
             <IconSortDescending size={16} />
           </ActionIcon>
         </Tooltip>
-        <CloseButton onClick={props.onRemove} size="sm" />
+        <CloseButton onClick={unselectCategory} size="sm" />
       </div>
     </div>
+  )
+}
+
+
+
+export function ScorePill(props: {
+  item: Article
+  c: Category
+  scoreDisplaySource: DisplaySources
+}) {
+
+  const theme = useMantineTheme();
+  const { classes, cx } = useStyles()
+  const buildScoreLabel = (c: Category) => {
+    const legacy = maxDecimal(getScore(props.item, c, 'legacy'), 3)
+    const computed = maxDecimal(getScore(props.item, c, 'computed'), 3)
+    const delta = maxDecimal(getScore(props.item, c, 'delta'), 3)
+
+    return (
+      <div className={classes.customTooltip}>
+        <span>{c.name}</span>
+        {!computed ? (
+          <span>Score: {legacy}</span>
+        ) : (
+          <span>Legacy: {legacy}</span>
+        )}
+        {!!computed && (
+          <>
+            <span>Computed: {computed}</span>
+            <span>Delta: {delta}</span>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <Tooltip withArrow label={buildScoreLabel(props.c)}>
+      <ColorSwatch size={20} className={cx(classes.score, { [classes.noScore]: getScore(props.item, props.c, props.scoreDisplaySource) === null })} color={props.c.color || (theme.colorScheme === "dark" ? "#111" : "white")}>
+        <Text
+          weight="bold"
+          size={9}
+          sx={{ color: props.c.color ? getContrastColor(props.c.color) : theme.colorScheme === "dark" ? "#AAA" : "#000" }}
+        >
+          {maxDecimal(getScore(props.item, props.c, props.scoreDisplaySource))}
+        </Text>
+      </ColorSwatch>
+    </Tooltip>
   )
 }
 
@@ -166,38 +263,82 @@ export function ScoreFilter(props: {
 const Row = memo(({ data, index, style }: any) => {
 
   // Data passed to List as "itemData" is available as props.data
-  const { items, onAction, isSelected, scoreDisplayMode, categories } = data;
+  const {
+    items,
+    onAction,
+    isSelected,
+    scoreDisplaySource,
+    scoreDisplayMode,
+    articleRowDetails,
+    categories,
+  } = data;
+
   const item: Article = items[index];
-  const { classes } = useStyles()
-  const theme = useMantineTheme();
+  const { classes, cx } = useStyles()
 
   return item?.id ? (
     <div
+      key={item.id}
       className={classes.row}
       onClick={() => onAction("click", item)}
       style={style}
     >
-      {(categories as Category[]).filter(c => passScoreTest(item, c, scoreDisplayMode)).length > 0 && (
-        <Group spacing={1} className={classes.scoresWrapper} mr="xs">
-          {(categories as Category[]).filter(c => passScoreTest(item, c, scoreDisplayMode)).map(c => (
-            <Tooltip key={c.id} withArrow label={`${c.name}: ${getScore(item, c)}`}>
-              <ColorSwatch size={20} className={classes.score} color={c.color || (theme.colorScheme === "dark" ? "#111" : "white")}>
-                <Text weight="bold" size={10} sx={{ color: c.color ? getContrastColor(c.color) : theme.colorScheme === "dark" ? "#AAA" : "#000" }} >{getScore(item, c)}</Text>
-              </ColorSwatch>
-            </Tooltip>
+      {scoreDisplayMode === "grid" ? (
+        <Group
+          spacing={1}
+          className={cx(
+            classes.scoresWrapper,
+            classes.scoresWrapperGrid,
+            { [classes.noPad]: (categories as Category[]).every(c => !passScoreTest(item, c)) }
+          )}
+          style={{ gridTemplateColumns: `repeat(${categories.length}, 1fr)` }}
+          mr="xs"
+        >
+          {(categories as Category[]).map(c => passScoreTest(item, c) ? (
+            <ScorePill key={c.id} item={item} c={c} scoreDisplaySource={scoreDisplaySource} />
+          ) : (
+            <span key={c.id}></span>
           ))}
         </Group>
+      ) : (
+        <>
+          {(categories as Category[]).filter(c => passScoreTest(item, c)).length > 0 && (
+            <Group spacing={1} className={classes.scoresWrapper} mr="xs">
+              {(categories as Category[]).filter(c => passScoreTest(item, c)).map(c => (
+                <ScorePill key={c.id} item={item} c={c} scoreDisplaySource={scoreDisplaySource} />
+              ))}
+            </Group>
+          )}
+        </>
       )}
-      <Anchor href={item.std.url} target="_blank" className={classes.title} title={item.std.title}>{item.std.title}</Anchor>
-      {item.non_std.source_name && <Tooltip withArrow label="Source name"><Badge sx={{ textTransform: "capitalize" }} color="orange">{item.non_std.source_name}</Badge></Tooltip>}
-      {item.non_std.publisher_name && <Tooltip withArrow label="Publisher name"><Badge sx={{ textTransform: "capitalize" }} >{item.non_std.publisher_name}</Badge></Tooltip>}
-      {item.std.lang_code ?
-        (<Tooltip withArrow label="Language"><Badge variant='outline' sx={{ borderColor: "transparent" }} size='sm'>{item.std.lang_code}</Badge></Tooltip>) :
-        (<Tooltip withArrow label="Language (inferred)"><Badge color="orange" variant='outline' sx={{ borderColor: "transparent" }} size='sm'>{item.out.infer_language}</Badge></Tooltip>)
-      }
-      <Tooltip label={format(new Date(item.std.publication_datetime), "PPPP pppp")}>
-        <Text size="xs" className={classes.date}>{format(new Date(item.std.publication_datetime), "dd.LL.y")}</Text>
-      </Tooltip>
+      {articleRowDetails.title && (<Anchor href={item.std.url} target="_blank" className={classes.title} title={item.std.title}>{item.std.title}</Anchor>)}
+      {articleRowDetails.source_name && item.non_std.source_name && <Tooltip withArrow label="Source name"><Badge sx={{ textTransform: "capitalize" }} color="orange">{item.non_std.source_name}</Badge></Tooltip>}
+      {articleRowDetails.publisher_name && item.non_std.publisher_name && <Tooltip withArrow label="Publisher name"><Badge sx={{ textTransform: "capitalize" }} >{item.non_std.publisher_name}</Badge></Tooltip>}
+      {articleRowDetails.lang && (
+        <>
+          {item.std.lang_code ?
+            (<Tooltip withArrow label="Language"><Badge variant='outline' sx={{ borderColor: "transparent" }} size='sm'>{item.std.lang_code}</Badge></Tooltip>) :
+            (<Tooltip withArrow label="Language (inferred)"><Badge color="orange" variant='outline' sx={{ borderColor: "transparent" }} size='sm'>{item.out.infer_language}</Badge></Tooltip>)
+          }
+        </>
+      )}
+      {articleRowDetails.publication_datetime && (
+        <Tooltip withArrow label={format(new Date(item.std.publication_datetime), "PPPP pppp")}>
+          <Text size="xs" className={classes.date}>{format(new Date(item.std.publication_datetime), "dd.LL.y")}</Text>
+        </Tooltip>
+      )}
+      {articleRowDetails.sections_length && (
+        <Badge sx={{ textTransform: "none", fontWeight: "normal" }}>
+          <Group>
+            <Tooltip withArrow label="Title length">
+              <span>{item.out.process_sections.title.split(" ").length}</span>
+            </Tooltip>
+            <Tooltip withArrow label="Body length">
+              <span>{item.out.process_sections.body.split(" ").length}</span>
+            </Tooltip>
+          </Group>
+        </Badge>
+      )}
       <ActionIcon onClick={() => onAction("details", item)}>
         <IconViewfinder size={16} />
       </ActionIcon>
@@ -208,11 +349,13 @@ const Row = memo(({ data, index, style }: any) => {
 
 Row.displayName = "ArticleListRow"
 
-const createItemData = memoize((items, onAction, isSelected, scoreDisplayMode, categories) => ({
+const createItemData = memoize((items, onAction, isSelected, scoreDisplaySource, scoreDisplayMode, articleRowDetails, categories) => ({
   items,
   onAction,
   isSelected,
+  scoreDisplaySource,
   scoreDisplayMode,
+  articleRowDetails,
   categories
 }));
 
@@ -229,18 +372,17 @@ export default function MantineList<T>(props: {
 }) {
 
   const { classes } = useStyles()
-  const { user } = useAuth()
   const [localQuery, setLocalQuery] = useState("")
   const [debouncedQuery] = useDebouncedValue(localQuery, 300)
 
   useEffect(() => {
-    setQuery(debouncedQuery)
+    setArticlesQuery(debouncedQuery)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery])
 
   const {
     filteredArticles,
-    setQuery,
+    setArticlesQuery,
     sortBy,
     setSortBy,
     sortByScore,
@@ -249,13 +391,20 @@ export default function MantineList<T>(props: {
     setSortAsc,
     categories,
     selectedCategories,
-    updateCategory,
-    toggleCategory,
     filterBy,
     filterByDate,
-    scoreDisplayMode
+    scoreDisplaySource,
+    scoreDisplayMode,
+    articleRowDetails,
+    displayedCategories
   } = useDatabase()
 
+  const filteredCategories = useMemo(() => {
+    if (!displayedCategories.length) {
+      return categories
+    }
+    return categories.filter(c => displayedCategories.includes(c.id))
+  }, [categories, displayedCategories])
 
   const onSort = (path: string, asc: boolean) => {
     setSortBy(path)
@@ -281,14 +430,6 @@ export default function MantineList<T>(props: {
     return key
   }
 
-  const updateScore = (val: number, c: Category) => {
-    updateCategory({ ...c, threshold: val }, user?.uid)
-  }
-
-  const unselectCategory = (c: Category) => {
-    toggleCategory(c)
-  }
-
   const onSortByScore = (c: Category, asc: boolean) => {
     setSortByScore(c)
     setSortAsc(asc)
@@ -298,7 +439,7 @@ export default function MantineList<T>(props: {
     <div className={classes.main}>
       {props.title}
       <div className={classes.header}>
-        <MediaQuery query="(max-width: 530px)" styles={{ display: "block" }} >
+        <MediaQuery query="(max-width: 730px)" styles={{ display: "block" }} >
           <TextInput
             icon={<IconSearch size={16} />}
             placeholder={"Search..."}
@@ -321,16 +462,16 @@ export default function MantineList<T>(props: {
           />
         </MediaQuery>
         <Group spacing={5} position="right">
-          <Menu shadow="md" width={200}>
+          <Menu shadow="md" width={200} >
             <Menu.Target>
               <Indicator disabled>
                 <Button variant='default' rightIcon={<IconChevronDown size={16} />}>
-                  <Text weight="normal">Sort by</Text>
+                  {!sortBy && !sortByScore && (<Text weight="normal">Sort by</Text>)}
                   {sortBy && (
-                    <Text ml={5}>: {getSortByLabel(sortBy)} ({sortAsc ? "asc" : "desc"})</Text>
+                    <Text ml={5}>{getSortByLabel(sortBy)} ({sortAsc ? "asc" : "desc"})</Text>
                   )}
                   {!!sortByScore && (
-                    <Text ml={5}>: <abbr title={sortByScore.name}>Score</abbr> ({sortAsc ? "asc" : "desc"})</Text>
+                    <Text ml={5}><abbr title={sortByScore.name}>Score</abbr> ({sortAsc ? "asc" : "desc"})</Text>
                   )}
                 </Button>
               </Indicator>
@@ -375,7 +516,7 @@ export default function MantineList<T>(props: {
           </Menu>
           <Popover position="bottom" withArrow shadow="lg">
             <Popover.Target>
-              <Indicator disabled={!(Object.keys(filterBy).length > 0 || (!!filterByDate[0] || !!filterByDate[1]))}>
+              <Indicator offset={2} disabled={!(Object.keys(filterBy).length > 0 || (!!filterByDate[0] || !!filterByDate[1]))}>
                 <Button variant='default' rightIcon={<IconChevronDown size={16} />}>
                   <Text weight="normal">Filter</Text>
                 </Button>
@@ -383,6 +524,18 @@ export default function MantineList<T>(props: {
             </Popover.Target>
             <Popover.Dropdown sx={{ maxWidth: "90vw" }}>
               <FiltersPanel />
+            </Popover.Dropdown>
+          </Popover>
+          <Popover position="bottom" withArrow shadow="lg">
+            <Popover.Target>
+              <Indicator offset={2} disabled={!displayedCategories.length}>
+                <Button variant='default' rightIcon={<IconChevronDown size={16} />}>
+                  <Text weight="normal">Display</Text>
+                </Button>
+              </Indicator>
+            </Popover.Target>
+            <Popover.Dropdown sx={{ maxWidth: "90vw" }}>
+              <DisplayOptionsPanel />
             </Popover.Dropdown>
           </Popover>
         </Group>
@@ -395,8 +548,6 @@ export default function MantineList<T>(props: {
               <ScoreFilter
                 category={c}
                 key={c.id}
-                onChange={val => updateScore(val, c)}
-                onRemove={() => unselectCategory(c)}
               />
             ))}
           </div>
@@ -408,7 +559,7 @@ export default function MantineList<T>(props: {
             <List
               height={height}
               itemCount={filteredArticles.length}
-              itemData={createItemData(filteredArticles, props.onAction, props.isSelected, scoreDisplayMode, categories)}
+              itemData={createItemData(filteredArticles, props.onAction, props.isSelected, scoreDisplaySource, scoreDisplayMode, articleRowDetails, filteredCategories)}
               itemSize={35}
               width={width}
             >

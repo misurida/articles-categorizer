@@ -1,4 +1,4 @@
-import React, { useMemo, memo } from 'react';
+import { memo } from 'react';
 import { FixedSizeList as List, areEqual } from 'react-window';
 import memoize from 'memoize-one';
 

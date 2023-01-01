@@ -461,43 +461,6 @@ export const stringToKey = (value: string) => {
   return value.normalize("NFD").toLowerCase().replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_").replace(/[^\w]/g, "")
 }
 
-export const average = (arr: number[]) => {
-  return arr.reduce((a, b) => a + b, 0) / arr.length
-}
-
-export const getWordsFrequency = (arr: string[]) => {
-  const map: Record<string, number> = {}
-  let maxFreq = 1
-  let maxFreqName = ""
-  for (const e of arr) {
-    if (map[e]) {
-      map[e]++
-      if (maxFreq < map[e]) {
-        maxFreq = map[e]
-        maxFreqName = e
-      }
-    }
-    else {
-      map[e] = 1
-    }
-  }
-  return {
-    map,
-    maxFreq,
-    maxFreqName,
-    avgFreq: average(Object.values(map))
-  };
-}
-
-export const countFrequencies = (hooks: string[], pool: string[]) => {
-  let count = 0;
-  for (const p of pool) {
-    if (hooks.includes(p)) {
-      count++
-    }
-  }
-  return count
-}
 
 /**
  * 
@@ -528,4 +491,18 @@ export function removeDuplicatesBy(arr: any[], by = "id") {
     }
     return false;
   });
+}
+
+
+/**
+ * Round if necessary
+ * 
+ * @see https://stackoverflow.com/questions/11832914/how-to-round-to-at-most-2-decimal-places-if-necessary#answer-18358056
+ * @param num 
+ * @returns 
+ */
+export function maxDecimal(num: any, precision = 2) {
+  const r = +(Math.round(num + `e+${precision}` as any)  + `e-${precision}`);
+  if(!isNaN(r)) return r
+  return null
 }

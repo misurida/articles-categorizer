@@ -3,8 +3,8 @@ import { FixedSizeList as List, areEqual } from 'react-window';
 import memoize from 'memoize-one';
 import { ActionIcon, Badge, Group, Stack, TextInput, Tooltip, Text, Checkbox, createStyles } from '@mantine/core';
 import { IconSearch, IconX } from '@tabler/icons';
-import { query } from 'firebase/firestore';
 import Fuse from 'fuse.js';
+import { WordFrequency } from '../utils/types';
 
 const useStyles = createStyles((theme) => ({
   row: {
@@ -22,20 +22,20 @@ const useStyles = createStyles((theme) => ({
     overflow: "hidden",
     textOverflow: "ellipsis",
     textAlign: "left"
-  }
+  },
 }));
 
 
 const Row = memo(({ data, index, style }: any) => {
 
-  const { items, selection, counts, onClick } = data;
-  const item = items[index];
-  const { classes } = useStyles()
+  const { items, selection, onClick } = data;
+  const item: WordFrequency = items[index];
+  const { classes, cx } = useStyles()
 
   const handleClick = (e: any) => {
     e.stopPropagation()
     if (onClick) {
-      onClick(index, item)
+      onClick(index, item.word)
     }
   }
 
@@ -46,12 +46,10 @@ const Row = memo(({ data, index, style }: any) => {
       onClick={handleClick}
       style={style}
     >
-      <Group align="center" spacing="xs" className={classes.row}>
-        <Checkbox className={classes.checkbox} checked={selection.includes(item)} onChange={handleClick} />
-        <Text className={classes.label}>{item}</Text>
-        {counts.length > index && counts[index] && (
-          <Badge sx={{ background: "transparent" }} size="sm">{counts[index]}</Badge>
-        )}
+      <Group align="center" spacing="xs" className={cx(classes.row)}>
+        <Checkbox className={classes.checkbox} checked={selection.includes(item.word)} onChange={handleClick} />
+        <Text className={classes.label}>{item.word || ""}</Text>
+        <Badge sx={{ background: "transparent" }} size="sm">{item.count}</Badge>
       </Group>
     </div>
   );
@@ -72,8 +70,7 @@ const createItemData = memoize((items, selection, counts, onClick) => ({
 
 
 export default function SelectableList<T>(props: {
-  items: T[]
-  counts?: (string | number)[]
+  items: WordFrequency[]
   height?: number | string
   width?: number | string
   placeholder?: string
@@ -147,7 +144,7 @@ export default function SelectableList<T>(props: {
       <List
         height={props.height || 200}
         itemCount={filteredItems.length}
-        itemData={createItemData(filteredItems, selection, props.counts || [], onClick)}
+        itemData={createItemData(filteredItems, selection, props.items || [], onClick)}
         itemSize={30}
         width={props.width || "100%"}
       >

@@ -24,6 +24,31 @@ export interface Article {
   }
 }
 
+export interface ArticleRowDetails {
+  title?: boolean
+  publisher_name?: boolean
+  source_name?: boolean
+  publication_datetime?: boolean
+  lang?: boolean
+  sections_length?: boolean
+}
+
+export interface CategoryRowDetails {
+  color?: boolean
+  display_button?: boolean
+  edit_button?: boolean
+  count?: boolean
+}
+
+export interface ScoresThresholds {
+  auto: Record<string, number>
+  legacy: Record<string, number>
+  computed: Record<string, number>
+  delta: Record<string, number>
+}
+
+export type DisplaySources = "legacy" | "computed" | "delta"
+
 export type SectionName = 'title' | 'body' | 'snippet'
 export interface KeywordRule {
   hook: string
@@ -43,7 +68,6 @@ export interface Category {
   color?: string
   rules: KeywordRule[]
   legacy_key?: string
-  threshold?: number
 }
 
 export interface Dataset {
@@ -52,4 +76,10 @@ export interface Dataset {
   createdAt: Date
   userId: string
   categories: Category[]
+}
+
+export interface WordFrequency {
+  word: string
+  count: number
+  index: number
 }

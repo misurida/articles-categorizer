@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const articles: Article[] = data.articles || []
     const categories: Category[] = data.categories || []
 
-    const results = articles.map(a => computeScores(a, categories, false))
+    const results = articles.map(a => computeScores(a, categories))
 
     res.status(200).json({
       articles,

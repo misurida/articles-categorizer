@@ -4,13 +4,11 @@ import { useHotkeys, useLocalStorage } from '@mantine/hooks';
 import { DatabaseContextProvider } from '../hooks/useDatabase';
 import { NotificationsProvider } from '@mantine/notifications';
 import { AuthContextProvider } from '../hooks/useAuth';
-import { DataContextProvider } from '../hooks/useData';
 import { appWithTranslation } from 'next-i18next';
 import { AppProps } from 'next/app';
 import packageJson from '../package.json'
 import PageLayout from '../components/structure/PageLayout';
 import Head from 'next/head'
-import { FirestoreContextProvider } from '../hooks/useFirestore';
 
 
 function MyApp({ Component, pageProps }: AppProps) {

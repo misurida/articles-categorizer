@@ -7,12 +7,11 @@ import {
   getBackendOptions,
   useDragOver,
   TreeMethods,
-  DragLayerMonitorProps,
-  DropOptions
+  DragLayerMonitorProps
 } from "@minoru/react-dnd-treeview";
-import { ActionIcon, Badge, Box, Button, Checkbox, Collapse, ColorSwatch, createStyles, Group, Menu, Switch, Text, ThemeIcon, Tooltip } from "@mantine/core";
-import { IconChevronRight, IconDotsVertical, IconEdit, IconRefresh, IconTrash } from "@tabler/icons";
-import { getContrastColor, getObjectValue } from "../utils/helpers";
+import { ActionIcon, Badge, Box, Button, Checkbox, Collapse, ColorSwatch, createStyles, Group, Switch, Text, ThemeIcon, Tooltip } from "@mantine/core";
+import { IconChevronRight, IconEdit, IconEye, IconEyeOff } from "@tabler/icons";
+import { getContrastColor } from "../utils/helpers";
 import { Category } from "../utils/types";
 import { passScoreTest, useDatabase } from "../hooks/useDatabase";
 
@@ -74,7 +73,10 @@ const useStyles = createStyles((theme) => ({
   },
   labelGridItem: {
     paddingInlineStart: 8,
-    cursor: "pointer"
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: 5
   },
   checkbox: {
     display: "flex",
@@ -110,6 +112,7 @@ const useStyles = createStyles((theme) => ({
   }
 }))
 
+const leftOffset = 12
 
 export const computeDepth = (nodes: TreeItem[], node?: TreeItem, depth = 0): number => {
   if (node?.parent) {
@@ -128,7 +131,7 @@ export function Placeholder(props: {
 }) {
 
   const { classes } = useStyles()
-  const left = props.depth * 24
+  const left = props.depth * leftOffset
 
   return (
     <div className={classes.placeholderRoot} style={{ left }}></div>
@@ -163,11 +166,13 @@ export function CustomNode(props: {
   onSelect: (node: NodeModel) => void
   onDelete?: (node: NodeModel) => void
   onEdit?: (node: NodeModel) => void
+  toggleDisplay?: (node: NodeModel) => void
 }) {
 
   const { classes, cx } = useStyles()
   const { id } = props.node;
-  const indent = props.depth * 24;
+  const indent = props.depth * leftOffset;
+  const { categoryRowDetails, displayedCategories, setDisplayedCategories } = useDatabase()
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -184,11 +189,47 @@ export function CustomNode(props: {
     }
   }
 
-  const deleteItem = (e: React.MouseEvent) => {
+  const toggleDisplay = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (props.onDelete) {
-      props.onDelete(props.node)
+    if (displayedCategories.includes(props.node.id.toString())) {
+      setDisplayedCategories(displayedCategories.filter(c => c !== props.node.id.toString()))
     }
+    else {
+      setDisplayedCategories([...displayedCategories, props.node.id.toString()])
+    }
+  }
+
+  const displayButtonElement = () => {
+    let label = "Hide the other scores"
+    let innerContent = (
+      <ActionIcon onClick={toggleDisplay} sx={{opacity: 0.5}}>
+        <IconEye size={16} />
+      </ActionIcon>
+    )
+    if (displayedCategories.length > 0) {
+      if (displayedCategories.includes(id.toString())) {
+        label = "Visible (click to hide)"
+        innerContent = (
+          <ActionIcon variant="outline" onClick={toggleDisplay}>
+            <IconEye size={16} />
+          </ActionIcon>
+        )
+      }
+      else {
+        label = "Hidden (click to show)"
+        innerContent = (
+          <ActionIcon onClick={toggleDisplay} sx={{ opacity: 0.5 }}>
+            <IconEyeOff size={16} />
+          </ActionIcon>
+        )
+      }
+    }
+    return innerContent
+    /* return (
+      <Tooltip withArrow label={label}>
+        {innerContent}
+      </Tooltip>
+    ) */
   }
 
   return (
@@ -214,24 +255,21 @@ export function CustomNode(props: {
         onChange={handleSelect}
       />
       <div className={classes.labelGridItem} onClick={handleSelect}>
-        <Group spacing="xs" align="center" noWrap>
+        {categoryRowDetails.color && (
           <ColorSwatch size={20} color={props.node.color || "transparent"}>
             <Text weight="bold" size="xs" sx={{ color: props.node.color ? getContrastColor(props.node.color) : "transparent" }} title={props.node.id.toString()}>{props.node.number}</Text>
           </ColorSwatch>
-          <Text>{props.node.text}</Text>
-          <Menu shadow="md">
-            <Menu.Target>
-              <ActionIcon onClick={(e: any) => e.stopPropagation()}>
-                <IconDotsVertical size={16} />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item onClick={editItem} icon={<IconEdit size={14} />}>Edit category</Menu.Item>
-              <Menu.Item onClick={deleteItem} icon={<IconTrash size={14} />}>Delete category</Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-          {props.count && (<Badge variant="outline">{props.count}</Badge>)}
-        </Group>
+        )}
+        {categoryRowDetails.display_button && displayButtonElement()}
+        <Text sx={{ lineHeight: 0.8, flex: 1 }}>{props.node.text}</Text>
+        {categoryRowDetails.edit_button && (
+          <Tooltip withArrow label="Edit category">
+            <ActionIcon onClick={editItem}>
+              <IconEdit size={16} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+        {(!!categoryRowDetails.count && !!props.count) && (<Badge variant="outline">{props.count}</Badge>)}
       </div>
     </div>
   );
@@ -262,7 +300,7 @@ export default function CategoriesTree(props: {
   }
 
   const maxDepth = 1
-  const { filteredArticles, categories } = useDatabase()
+  const { filteredArticles, categories, thresholds, scoreDisplaySource } = useDatabase()
   const { classes } = useStyles()
   const [treeData, setTreeData] = useState<NodeModel<Category>[]>(buildTreeItems(props.data));
   const [editTree, setEditTree] = useState(false)
@@ -296,7 +334,7 @@ export default function CategoriesTree(props: {
     if (!filteredArticles || !filteredArticles.length || !cat) {
       return 0
     }
-    return filteredArticles.filter(a => passScoreTest(a, cat)).length
+    return filteredArticles.filter(a => passScoreTest(a, cat, thresholds, scoreDisplaySource)).length
   }
 
   const ref = useRef<TreeMethods>(null);

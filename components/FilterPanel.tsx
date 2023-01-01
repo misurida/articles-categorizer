@@ -1,12 +1,13 @@
-import { ActionIcon, Badge, Box, Checkbox, Group, Indicator, Menu, TextInput, createStyles } from "@mantine/core";
+import { ActionIcon, Badge, Box, Checkbox, Group, Indicator, Menu, createStyles } from "@mantine/core";
 import { useDatabase } from "../hooks/useDatabase";
-import { extractStringsList, getObjectValue, getWordsFrequency } from "../utils/helpers";
-import SelectableList from "./SelectableList";
-import { useMemo, useState } from "react";
+import { getObjectValue } from "../utils/helpers";
+import { useEffect, useState } from "react";
 import { DatePicker, DateRangePicker } from "@mantine/dates";
-import { Article } from "../utils/types";
-import { isAfter, isBefore, isSameDay } from "date-fns";
-import { IconBoxModel, IconClick } from "@tabler/icons";
+import { Article, WordFrequency } from "../utils/types";
+import { isSameDay } from "date-fns";
+import { IconClick } from "@tabler/icons";
+import SelectableList from "./SelectableList";
+import { getWordFrequencies } from "../utils/keywords_handler";
 
 const useStyles = createStyles((theme) => ({
   filtersPanel: {
@@ -27,25 +28,35 @@ const useStyles = createStyles((theme) => ({
     right: -5,
     zIndex: 1,
     padding: "0 0.5em"
+  },
+  popoverFooter: {
+    borderTop: `thin solid ${theme.colorScheme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
+    paddingTop: 10,
+    marginTop: "1em"
   }
 }));
 
 export function FilterList(props: {
   label: string
   path: string
+  basedOnFiltered: boolean
 }) {
 
-  const { articles, setFilterBy, filterBy } = useDatabase()
+  const { articles, setFilterBy, filterBy, filteredArticles } = useDatabase()
+  const [items, setItems] = useState<WordFrequency[]>([])
 
-  /* const items = useMemo(() => {
-    return extractStringsList(articles, props.path)
-  }, [props.path, articles]) */
-
-  const items = useMemo(() => {
-    return getWordsFrequency(articles.map(a => getObjectValue(a, props.path)).filter(e => !!e)).map || {}
+  useEffect(() => {
+    setItems(getWordFrequencies(articles.map(a => getObjectValue(a, props.path))))
   }, [props.path, articles])
 
+  useEffect(() => {
+    if (props.basedOnFiltered) {
+      setItems(getWordFrequencies(filteredArticles.map(a => getObjectValue(a, props.path))))
+    }
+  }, [props.path, filteredArticles, props.basedOnFiltered])
+
   const onChange = (value: string[]) => {
+    console.log(value)
     if (!value.length) {
       let fb = JSON.parse(JSON.stringify(filterBy))
       if (fb[props.path]) delete fb[props.path]
@@ -59,8 +70,7 @@ export function FilterList(props: {
   return (
     <SelectableList
       label={props.label}
-      items={Object.keys(items)}
-      counts={Object.values(items)}
+      items={items}
       onChange={onChange}
       selection={filterBy[props.path]}
     />
@@ -86,6 +96,7 @@ export default function FiltersPanel() {
   const { filterByDate, setFilterByDate, articles } = useDatabase()
   const [calendarMode, setCalendarMode] = useState<CalendarMode>("range")
   const [useCalendarAnnotations, setUseCalendarAnnotations] = useState(false)
+  const [basedOnFiltered, setBasedOnFiltered] = useState(false)
 
   const setStartingDate = (date: Date | null) => {
     const data = JSON.parse(JSON.stringify(filterByDate))
@@ -180,9 +191,11 @@ export default function FiltersPanel() {
           )}
         </div>
       </Box>
+      <Checkbox mb="xs" label="Dynamic filters" checked={basedOnFiltered} onChange={(event) => setBasedOnFiltered(event.currentTarget.checked)} />
       <div className={classes.filtersPanel}>
-        <div className={classes.filterListWrapper}><FilterList label="Publisher name" path="non_std.publisher_name" /></div>
-        <div className={classes.filterListWrapper}><FilterList label="Source name" path="non_std.source_name" /></div>
+        <div className={classes.filterListWrapper}><FilterList basedOnFiltered={basedOnFiltered} label="Language" path="out.infer_language" /></div>
+        <div className={classes.filterListWrapper}><FilterList basedOnFiltered={basedOnFiltered} label="Publisher name" path="non_std.publisher_name" /></div>
+        <div className={classes.filterListWrapper}><FilterList basedOnFiltered={basedOnFiltered} label="Source name" path="non_std.source_name" /></div>
       </div>
     </Box>
   )

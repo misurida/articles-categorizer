@@ -3,34 +3,36 @@ import { ref, onValue, set, update, push } from "firebase/database";
 import { getObjectValue, objectToArray, uuidv4 } from '../utils/helpers';
 import { DefaultPageProps } from '../types/shell'
 import { auth, db } from '../utils/firebase'
-import { Article, Category, Dataset } from '../utils/types';
+import { Article, ArticleRowDetails, Category, CategoryRowDetails, Dataset, DisplaySources, ScoresThresholds, WordFrequency } from '../utils/types';
 import { DateRangePickerValue } from '@mantine/dates';
 import { isAfter, isBefore } from 'date-fns';
 import Fuse from 'fuse.js';
 
-export function passScoreTest(article: Article, cat: Category, mode?: 'legacy' | 'computed') {
-  let score = 0
-  if (mode === "legacy") {
-    score = getObjectValue(article, `out.classify_categories.relevance_scores.${cat.legacy_key}`) || 0
-  }
-  else if (mode === "computed") {
-    score = getObjectValue(article, `classification.${cat.key}`) || 0
-  }
-  else {
-    const cScore = getObjectValue(article, `classification.${cat.key}`)
-    if (cScore) score = cScore
-    else if (cat.legacy_key) score = getObjectValue(article, `out.classify_categories.relevance_scores.${cat.legacy_key}`)
-  }
-  return score > (cat.threshold || 0)
+export function passScoreTest(article: Article, cat: Category, thresholds?: Record<string, number>, mode?: DisplaySources) {
+  const score = getScore(article, cat, mode)
+  if(score === null) return false
+  return (score || 0) > (thresholds?.[cat.key] || 0)
 }
 
-export function getScore(article: Article, cat: Category, mode?: 'legacy' | 'computed') {
+export function getScore(article: Article, cat: Category, mode?: DisplaySources): number | null {
   let score = null
-  if (mode === "legacy") {
-    score = getObjectValue(article, `out.classify_categories.relevance_scores.${cat.legacy_key}`) || 0
+  if (mode === "delta") {
+    const legacyScore = getObjectValue(article, `out.classify_categories.relevance_scores.${cat.legacy_key}`) || 0
+    const computedScore = getObjectValue(article, `classification.${cat.key}`) || 0
+    if(!legacyScore || !computedScore) {
+      return null
+    }
+    const delta = computedScore - legacyScore
+    if (!isNaN(delta)) {
+      return delta
+    }
+    return null
+  }
+  else if (mode === "legacy") {
+    score = getObjectValue(article, `out.classify_categories.relevance_scores.${cat.legacy_key}`) || null
   }
   else if (mode === "computed") {
-    score = getObjectValue(article, `classification.${cat.key}`) || 0
+    score = getObjectValue(article, `classification.${cat.key}`) || null
   }
   else {
     const cScore = getObjectValue(article, `classification.${cat.key}`)
@@ -62,10 +64,10 @@ interface DatabaseContext {
   articles: Article[]
   setArticles: Dispatch<SetStateAction<Article[]>>
   articlesIndex: Fuse<Article>
-  query: string
-  setQuery: Dispatch<SetStateAction<string>>
-  sortBy: string
-  setSortBy: Dispatch<SetStateAction<string>>
+  articlesQuery: string
+  setArticlesQuery: Dispatch<SetStateAction<string>>
+  sortBy?: string
+  setSortBy: Dispatch<SetStateAction<string | undefined>>
   sortAsc: boolean
   setSortAsc: Dispatch<SetStateAction<boolean>>
   selectedCategories: string[]
@@ -81,8 +83,32 @@ interface DatabaseContext {
   setFilterByDate: Dispatch<SetStateAction<DateRangePickerValue>>
   loadArticlesFromFile: (data: any) => Promise<void>
   computeArticles: () => Promise<void>
-  scoreDisplayMode?: "legacy" | "computed"
-  setScoreDisplayMode: Dispatch<SetStateAction<"legacy" | "computed" | undefined>>
+  computeWordsFrequencies: () => Promise<void>
+  scoreDisplayMode?: "flex" | "grid"
+  setScoreDisplayMode: Dispatch<SetStateAction<"flex" | "grid" | undefined>>
+  scoreDisplaySource?: DisplaySources
+  setScoreDisplaySource: Dispatch<SetStateAction<DisplaySources | undefined>>
+  articleRowDetails: ArticleRowDetails
+  setArticleRowDetails: Dispatch<SetStateAction<ArticleRowDetails>>
+  displayedCategories: string[]
+  setDisplayedCategories: Dispatch<SetStateAction<string[]>>
+  scoresThresholds: ScoresThresholds
+  setScoresThresholds: Dispatch<SetStateAction<ScoresThresholds>>
+  thresholds: Record<string, number>
+  categoryRowDetails: CategoryRowDetails
+  setCategoryRowDetails: Dispatch<SetStateAction<CategoryRowDetails>>
+  wordsFrequencies: WordFrequency[]
+  frequenciesQuery: string
+  setFrequenciesQuery: Dispatch<SetStateAction<string>>
+  filteredWordFrequencies: WordFrequency[]
+  freqSortBy?: keyof WordFrequency
+  setFreqSortBy: Dispatch<SetStateAction<keyof WordFrequency | undefined>>
+  freqSortAsc: boolean
+  setFreqSortAsc: Dispatch<SetStateAction<boolean>>
+  freqThreshold: number
+  setFreqThreshold: Dispatch<SetStateAction<number>>
+  freqThresholdGT: boolean
+  setFreqThresholdGT: Dispatch<SetStateAction<boolean>>
 }
 
 /**
@@ -101,23 +127,58 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   // data loading custom web worker
   const [articlesLoadWorker, setArticlesLoadWorker] = useState<Worker | undefined>()
   const [articlesComputationsWorker, setArticlesComputationsWorker] = useState<Worker | undefined>()
+  const [wordsFrequenciesWorker, setWordsFrequenciesWorker] = useState<Worker | undefined>()
   // store state
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [dataset, setLocalDataset] = useState<Dataset | undefined>()
   const [categories, setCategoriesValues] = useState<Category[]>([])
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(false)
-  const [query, setQuery] = useState("")
-  const [sortBy, setSortBy] = useState("std.publication_datetime")
+  const [articlesQuery, setArticlesQuery] = useState("")
+  const [sortBy, setSortBy] = useState<string | undefined>()
   const [sortAsc, setSortAsc] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [sortByScore, setSortByScore] = useState<Category | undefined>()
   const [andMode, setAndMode] = useState(false)
   const [filterBy, setFilterBy] = useState<Record<string, string[]>>({})
   const [filterByDate, setFilterByDate] = useState<DateRangePickerValue>([null, null])
-  const [scoreDisplayMode, setScoreDisplayMode] = useState<'legacy' | 'computed' | undefined>('computed')
+  const [scoreDisplayMode, setScoreDisplayMode] = useState<'flex' | 'grid' | undefined>('flex')
+  const [scoreDisplaySource, setScoreDisplaySource] = useState<DisplaySources | undefined>()
+  const [articleRowDetails, setArticleRowDetails] = useState<ArticleRowDetails>({
+    title: true,
+    lang: true,
+    publication_datetime: true
+  })
+  const [displayedCategories, setDisplayedCategories] = useState<string[]>([])
+  const [scoresThresholds, setScoresThresholds] = useState<ScoresThresholds>({
+    auto: {},
+    legacy: {},
+    computed: {},
+    delta: {}
+  })
+  const [categoryRowDetails, setCategoryRowDetails] = useState<CategoryRowDetails>({
+    color: true,
+    display_button: true,
+    edit_button: true,
+    count: true
+  })
+  const [wordsFrequencies, setWordsFrequencies] = useState<WordFrequency[]>([])
+  const [frequenciesQuery, setFrequenciesQuery] = useState("")
+  const [freqSortBy, setFreqSortBy] = useState<keyof WordFrequency | undefined>()
+  const [freqSortAsc, setFreqSortAsc] = useState(false)
+  const [freqThreshold, setFreqThreshold] = useState(0)
+  const [freqThresholdGT, setFreqThresholdGT] = useState(true)
 
-  // initialize the web workers
+  const thresholds = useMemo(() => {
+    if (!scoreDisplaySource) {
+      return scoresThresholds.auto
+    }
+    return scoresThresholds[scoreDisplaySource]
+  }, [])
+
+
+  // initializing the web workers
+
   useEffect(() => {
     const worker = new Worker(new URL('../workers/articles_loader.worker', import.meta.url))
     setArticlesLoadWorker(worker)
@@ -136,7 +197,16 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     }
   }, [])
 
+  useEffect(() => {
+    const worker = new Worker(new URL('../workers/words_frequencies.worker', import.meta.url))
+    setWordsFrequenciesWorker(worker)
+    return () => {
+      wordsFrequenciesWorker?.terminate()
+      setWordsFrequenciesWorker(undefined)
+    }
+  }, [])
 
+  // custom worker functions
 
   const loadArticlesFromFile = async (data: any) => {
     articlesLoadWorker?.postMessage(data)
@@ -158,6 +228,16 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     })
   }
 
+  const computeWordsFrequencies = async () => {
+    wordsFrequenciesWorker?.postMessage({ articles: filteredArticles })
+    return new Promise<void>((resolve, reject) => {
+      wordsFrequenciesWorker?.addEventListener('message', (event) => {
+        setWordsFrequencies(event.data)
+        resolve()
+      });
+    })
+  }
+
   const articlesIndex = useMemo(() => {
     const options = {
       // isCaseSensitive: false,
@@ -167,7 +247,7 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
       // findAllMatches: false,
       // minMatchCharLength: 1,
       // location: 0,
-      // threshold: 0.6,
+      threshold: 0.2,
       // distance: 100,
       // useExtendedSearch: false,
       // ignoreLocation: false,
@@ -182,11 +262,33 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     return new Fuse(articles, options);
   }, [articles])
 
+  const wordFrequenciesIndex = useMemo(() => {
+    const options = {
+      // isCaseSensitive: false,
+      // includeScore: false,
+      // shouldSort: true,
+      includeMatches: false,
+      // findAllMatches: false,
+      // minMatchCharLength: 1,
+      // location: 0,
+      threshold: 0.2,
+      // distance: 100,
+      // useExtendedSearch: false,
+      // ignoreLocation: false,
+      // ignoreFieldNorm: false,
+      // fieldNormWeight: 1,
+      keys: [
+        "word"
+      ]
+    };
+    return new Fuse(wordsFrequencies, options);
+  }, [wordsFrequencies])
+
   const filteredArticles = useMemo(() => {
-    let data = articles
+    let data: Article[] = JSON.parse(JSON.stringify(articles))
     // query filters
-    if (query) {
-      data = articlesIndex.search(query).map(e => e.item).filter(e => !!e)
+    if (articlesQuery) {
+      data = articlesIndex.search(articlesQuery).map(e => e.item).filter(e => !!e)
     }
     if (filterByDate[0] || filterByDate[1]) {
       data = data.filter(a => {
@@ -211,17 +313,18 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     if (Object.keys(filterBy).length > 0) {
       for (let p in filterBy) {
         const pa = filterBy[p] || []
-        data = data.filter(a => pa.includes(getObjectValue(a, p)))
+        data = data.filter(a => pa.includes(getObjectValue(a, p) || ""))
       }
     }
     // categories filters
     if (selectedCategories.length > 0) {
       const selCat = categories.filter(c => selectedCategories.includes(c.id))
+      const thresholdSet = scoresThresholds[scoreDisplaySource || "auto"]
       if (andMode) {
-        data = data.filter(a => selCat.every(c => passScoreTest(a, c)))
+        data = data.filter(a => selCat.every(c => passScoreTest(a, c, thresholdSet, scoreDisplaySource)))
       }
       else {
-        data = data.filter(a => selCat.some(c => passScoreTest(a, c)))
+        data = data.filter(a => selCat.some(c => passScoreTest(a, c, thresholdSet, scoreDisplaySource)))
       }
     }
     // sort by prop
@@ -237,15 +340,50 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     // sort by score
     if (sortByScore) {
       data.sort((a, b) => {
-        const A = getScore(a, sortByScore)
-        const B = getScore(b, sortByScore)
+        const A = getScore(a, sortByScore) || 0
+        const B = getScore(b, sortByScore) || 0
         if (A > B) return sortAsc ? 1 : -1
         if (A < B) return sortAsc ? -1 : 1
         return 0
       })
     }
     return data
-  }, [articles, query, sortBy, sortAsc, selectedCategories, categories, sortByScore, andMode, filterBy, filterByDate])
+  }, [articles, articlesQuery, sortBy, sortAsc, selectedCategories, categories, sortByScore, andMode, filterBy, filterByDate, scoresThresholds, scoreDisplaySource])
+
+
+  const filteredWordFrequencies = useMemo(() => {
+    let data: WordFrequency[] = JSON.parse(JSON.stringify(wordsFrequencies))
+    // count threshold filter
+    if(freqThreshold !== 0 || !freqThresholdGT) {
+      data = data.filter(d => (d.count > freqThreshold && freqThresholdGT) || (d.count < freqThreshold && !freqThresholdGT))
+    }
+    // sort by prop
+    if (freqSortBy) {
+      data.sort((a, b) => {
+        const A = a[freqSortBy]
+        const B = b[freqSortBy]
+        if (A > B) return freqSortAsc ? 1 : -1
+        if (A < B) return freqSortAsc ? -1 : 1
+        return 0
+      })
+    }
+    data = data.map((d, i) => ({ ...d, index: i }))
+    // query filters
+    if (frequenciesQuery) {
+      data = wordFrequenciesIndex.search(frequenciesQuery).map(e => data.find(ee => ee.word === e.item.word) || e.item)
+      if (freqSortBy) {
+        data.sort((a, b) => {
+          const A = a[freqSortBy]
+          const B = b[freqSortBy]
+          if (A > B) return freqSortAsc ? 1 : -1
+          if (A < B) return freqSortAsc ? -1 : 1
+          return 0
+        })
+      }
+    }
+    return data
+  }, [wordsFrequencies, frequenciesQuery, freqSortBy, freqSortAsc, freqThreshold, freqThresholdGT])
+
 
   // EDIT HERE... add your custom useState hook to store fetched data (see below).
 
@@ -391,6 +529,7 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   const contextValues: DatabaseContext = {
     loadArticlesFromFile,
     computeArticles,
+    computeWordsFrequencies,
 
     updateData,
     updateItems,
@@ -413,8 +552,8 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     articles,
     setArticles,
     articlesIndex,
-    query,
-    setQuery,
+    articlesQuery,
+    setArticlesQuery,
     sortBy,
     setSortBy,
     sortAsc,
@@ -431,7 +570,30 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     filterByDate,
     setFilterByDate,
     scoreDisplayMode,
-    setScoreDisplayMode
+    setScoreDisplayMode,
+    scoreDisplaySource,
+    setScoreDisplaySource,
+    articleRowDetails,
+    setArticleRowDetails,
+    displayedCategories,
+    setDisplayedCategories,
+    scoresThresholds,
+    setScoresThresholds,
+    thresholds,
+    categoryRowDetails,
+    setCategoryRowDetails,
+    wordsFrequencies,
+    frequenciesQuery,
+    setFrequenciesQuery,
+    filteredWordFrequencies,
+    freqSortBy,
+    setFreqSortBy,
+    freqSortAsc,
+    setFreqSortAsc,
+    freqThreshold,
+    setFreqThreshold,
+    freqThresholdGT,
+    setFreqThresholdGT
   }
 
   return (
