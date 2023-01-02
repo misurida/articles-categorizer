@@ -1,5 +1,4 @@
 import { InternationalizationStaticProps } from '../types/shell'
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { Stack, Modal, createStyles, Group, Button, Tabs } from '@mantine/core'
 import { NextPage } from 'next'
 import { useState } from 'react'
@@ -13,10 +12,6 @@ import ArticleDetails from '../components/ArticleDetails'
 import KeywordsList from '../components/KeywordsList'
 import { showNotification, updateNotification } from '@mantine/notifications'
 import { intervalToDuration } from 'date-fns'
-
-export async function getStaticProps({ locale }: InternationalizationStaticProps) {
-  return { props: { ...(await serverSideTranslations(locale, ["common"])) } }
-}
 
 const useStyles = createStyles((theme) => ({
   mainGrid: {

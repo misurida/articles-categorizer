@@ -2,7 +2,6 @@ import { IconBrandGoogle, IconCheck, IconChevronLeft, IconChevronRight, IconLock
 import { Button, Box, Group, Tabs, TextInput, Text, PasswordInput, Popover, Progress, Menu, Avatar, useMantineTheme } from '@mantine/core';
 import { MouseEventHandler, useEffect, useState } from 'react';
 import { useForm, UseFormReturnType } from '@mantine/form';
-import { TFunction, useTranslation } from 'next-i18next';
 import { showNotification } from '@mantine/notifications';
 import { AuthError, User } from 'firebase/auth';
 import { buildInitials } from '../../../utils/helpers';
@@ -47,10 +46,10 @@ export function PasswordRequirement({ meets, label }: {
  * The password requirements.
  */
 export const requirements: PasswordRequirementItem[] = [
-  { re: /[0-9]/, label: 'includes_number' },
-  { re: /[a-z]/, label: 'includes_lowercase_letter' },
-  { re: /[A-Z]/, label: 'includes_uppercase_letter' },
-  { re: /[$&+,:;=?@#|'<>.^*()%!-]/, label: 'includes_special_symbol' },
+  { re: /[0-9]/, label: 'Includes number' },
+  { re: /[a-z]/, label: 'Includes lowercase letter' },
+  { re: /[A-Z]/, label: 'Includes uppercase letter' },
+  { re: /[$&+,:;=?@#|'<>.^*()%!-]/, label: 'Includes special symbols' },
 ];
 
 /**
@@ -133,17 +132,16 @@ export const passwordErrorMessages = {
   }
 } as const
 
-export const buildErrorMessage = (e: AuthError, t: TFunction) => {
-  const defaultMessage = t('authentication_error', { code: e.code })
+export const buildErrorMessage = (e: AuthError) => {
+  const defaultMessage = `Authentication error (${e.code})`
   const code = e.code as keyof typeof passwordErrorMessages
   const msg = passwordErrorMessages[code] || {}
-  showNotification({ message: t(msg.i18n).toString(), color: "red", icon: <IconX size={18} /> })
-
+  showNotification({ message: `defaultMessage`, color: "red", icon: <IconX size={18} /> })
   if (msg.target === "password") {
-    return { password: msg.short ? t(msg.short) : defaultMessage };
+    return { password: defaultMessage };
   }
   else {
-    return { email: msg.short ? t(msg.short) : defaultMessage };
+    return { email: defaultMessage };
   }
 }
 
@@ -169,7 +167,6 @@ export function UserInfo(props: {
   user?: User | null
 }) {
 
-  const { t } = useTranslation()
   const theme = useMantineTheme();
   const profilePicture = props.user?.photoURL || props.user?.providerData[0].photoURL || undefined
 
@@ -193,9 +190,9 @@ export function UserInfo(props: {
           {!props.user && (
             <>
               <Link href="/login">
-                <Text size="sm" weight={500}>{t('account')}</Text>
+                <Text size="sm" weight={500}>Account</Text>
               </Link>
-              <Text color="dimmed" size="xs">{t('login_or_subscribe')}</Text>
+              <Text color="dimmed" size="xs">Login or subscribe</Text>
             </>
           )}
           {props.user?.email && (
@@ -233,7 +230,6 @@ export function LoginForm(props: {
   onLogin?: () => void
 }) {
 
-  const { t } = useTranslation()
 
   const form = useForm({
     initialValues: {
@@ -241,7 +237,7 @@ export function LoginForm(props: {
       password: '',
     },
     validate: {
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : t('invalid_email')),
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
     },
   });
 
@@ -256,9 +252,9 @@ export function LoginForm(props: {
       if (props.onLogin) {
         props.onLogin()
       }
-      showNotification({ message: t('logged_in'), color: "green", icon: <IconCheck size={18} /> })
+      showNotification({ message: "Logged in", color: "green", icon: <IconCheck size={18} /> })
     } catch (error: any) {
-      const errors = buildErrorMessage(error, t)
+      const errors = buildErrorMessage(error)
       if (errors.email) form.setFieldError('email', errors.email)
       if (errors.password) form.setFieldError('password', errors.password)
       setLoading(false);
@@ -269,22 +265,22 @@ export function LoginForm(props: {
     <form onSubmit={form.onSubmit(onLogin)}>
       <TextInput
         required
-        label={t('email')}
-        placeholder={t('your_email')}
+        label={"Email"}
+        placeholder={"Your email"}
         icon={<IconMail size={16} />}
         {...form.getInputProps('email')}
       />
       <PasswordInput
         mt="sm"
         required
-        label={t('password')}
-        placeholder={t('your_password')}
+        label={"Password"}
+        placeholder={"Your password"}
         icon={<IconLock size={16} />}
         {...form.getInputProps('password')}
       />
       <Group position="right" mt="md">
         {props.cancelButton}
-        <Button type="submit" color={Object.keys(form.errors).length > 0 ? 'red' : ''} loading={loading}>{t('login')}</Button>
+        <Button type="submit" color={Object.keys(form.errors).length > 0 ? 'red' : ''} loading={loading}>{"Login"}</Button>
       </Group>
     </form>
   )
@@ -303,7 +299,6 @@ export function SubscribeForm(props: {
   cancelButton?: React.ReactNode
 }) {
 
-  const { t } = useTranslation()
   const form = useForm({
     initialValues: {
       email: '',
@@ -311,18 +306,18 @@ export function SubscribeForm(props: {
       confirmPassword: ''
     },
     validate: {
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : t('invalid_email')),
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
       password: (value) => {
         for (let i = 0; i < requirements.length; i++) {
           const req = requirements[i]
           if (!new RegExp(req.re).test(value)) {
-            return t('the_password_is_not_strong_enough')
+            return "The password is not strong enough"
           }
         }
         return null;
       },
       confirmPassword: (value, values) =>
-        value !== values.password ? t('the_passwords_are_not_similar') : null,
+        value !== values.password ? "The passwords are not similar" : null,
     },
   });
 
@@ -334,9 +329,9 @@ export function SubscribeForm(props: {
       setLoading(true);
       await signup(values.email, values.password)
       setLoading(false)
-      showNotification({ message: t('account_created'), color: "green", icon: <IconCheck size={18} /> })
+      showNotification({ message: "Account created", color: "green", icon: <IconCheck size={18} /> })
     } catch (error: any) {
-      const errors = buildErrorMessage(error, t)
+      const errors = buildErrorMessage(error)
       if (errors.email) form.setFieldError('email', errors.email)
       if (errors.password) form.setFieldError('password', errors.password)
       setLoading(false);
@@ -347,8 +342,8 @@ export function SubscribeForm(props: {
     <form onSubmit={form.onSubmit(onSubscribe)}>
       <TextInput
         required
-        label={t('email')}
-        placeholder={t('your_email')}
+        label={"Email"}
+        placeholder={"Your email"}
         icon={<IconMail size={16} />}
         {...form.getInputProps('email')}
       />
@@ -356,14 +351,14 @@ export function SubscribeForm(props: {
       <PasswordInput
         mt="sm"
         required
-        label={t('confirm_password')}
-        placeholder={t('confirm_password')}
+        label={"Confirm password"}
+        placeholder={"Confirm password"}
         icon={<IconLock size={16} />}
         {...form.getInputProps('confirmPassword')}
       />
       <Group position="right" mt="md">
         {props.cancelButton}
-        <Button type="submit" color={Object.keys(form.errors).length > 0 ? 'red' : ''} loading={loading}>{t('subscribe')}</Button>
+        <Button type="submit" color={Object.keys(form.errors).length > 0 ? 'red' : ''} loading={loading}>{"Subscribe"}</Button>
       </Group>
     </form>
   )
@@ -381,11 +376,10 @@ export function PasswordInputEnhanced({ form, required }: {
   required?: boolean
 }) {
 
-  const { t } = useTranslation()
   const strength = getStrength(form.values.password);
   const color = strength === 100 ? 'teal' : strength > 50 ? 'yellow' : 'red';
   const checks = requirements.map((requirement, index) => (
-    <PasswordRequirement key={index} label={t(requirement.label)} meets={requirement.re.test(form.values.password)} />
+    <PasswordRequirement key={index} label={requirement.label} meets={requirement.re.test(form.values.password)} />
   ));
 
   return (
@@ -399,16 +393,16 @@ export function PasswordInputEnhanced({ form, required }: {
         <PasswordInput
           required={required}
           mt="sm"
-          label={t('password')}
-          placeholder={t('your_password')}
+          label={"Password"}
+          placeholder={"Your password"}
           icon={<IconLock size={16} />}
-          description={t('strong_password_required')}
+          description={"Strong password required"}
           {...form.getInputProps('password')}
         />
       </Popover.Target>
       <Popover.Dropdown>
         <Progress color={color} value={strength} size={5} style={{ marginBottom: 10 }} />
-        <PasswordRequirement label={t('includes_at_least_6_characters')} meets={form.values.password.length > 5} />
+        <PasswordRequirement label={"Includes at least 6 characters"} meets={form.values.password.length > 5} />
         {checks}
       </Popover.Dropdown>
     </Popover>
@@ -435,7 +429,6 @@ export function AuthForm(props: {
   asMenu?: boolean
 }) {
 
-  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const { user, logout, loginWithGoogle } = useAuth()
   const router = useRouter()
@@ -464,16 +457,16 @@ export function AuthForm(props: {
       cancel()
       router.push("/");
       setLoading(false);
-      showNotification({ message: t('successfully_logged_out'), color: "green", icon: <IconCheck size={18} /> })
+      showNotification({ message: "Successfully logged out", color: "green", icon: <IconCheck size={18} /> })
     } catch (error: any) {
-      buildErrorMessage(error, t)
+      buildErrorMessage(error)
     }
   };
 
   const loginGoogle = async () => {
     try {
       await loginWithGoogle();
-      showNotification({ message: t('successfully_logged_in_with_google'), color: "green", icon: <IconCheck size={18} /> })
+      showNotification({ message: "Successfully logged in with Google", color: "green", icon: <IconCheck size={18} /> })
       cancel()
     }
     catch (e) {
@@ -507,23 +500,23 @@ export function AuthForm(props: {
           {!!user ? (
             <>
               <Menu.Label style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ opacity: 0.5 }}>{t('logged_as')}</span>
+                <span style={{ opacity: 0.5 }}>Logged as</span>
                 <span onClick={() => console.dir(user)}>{user.displayName}</span>
               </Menu.Label>
-              <Menu.Item onClick={goToMyProfile} icon={<IconUserCircle size={14} />}>{t('my_profile')}</Menu.Item>
-              <Menu.Item onClick={handleLogout} icon={<IconLogout size={14} />}>{t('logout')}</Menu.Item>
+              <Menu.Item onClick={goToMyProfile} icon={<IconUserCircle size={14} />}>My profile</Menu.Item>
+              <Menu.Item onClick={handleLogout} icon={<IconLogout size={14} />}>Logout</Menu.Item>
             </>
           ) : (
             <>
-              <Menu.Label>{t('unauthenticated')}</Menu.Label>
-              <Menu.Item onClick={loginGoogle} icon={<IconBrandGoogle size={14} />}>{t('login_with_google')}</Menu.Item>
-              <Menu.Item onClick={() => setShowLoginWithEmail(v => !v)} icon={<IconMail size={14} />}>{t('login_with_email')}</Menu.Item>
+              <Menu.Label>Unauthenticated</Menu.Label>
+              <Menu.Item onClick={loginGoogle} icon={<IconBrandGoogle size={14} />}>Login with Google</Menu.Item>
+              <Menu.Item onClick={() => setShowLoginWithEmail(v => !v)} icon={<IconMail size={14} />}>Login with email</Menu.Item>
               {showLoginWithEmail && (
                 <Box p="sm">
                   <LoginForm onLogin={cancel} />
                 </Box>
               )}
-              <Menu.Item onClick={goToMySubscribe} icon={<IconUserPlus size={14} />}>{t('subscribe')}</Menu.Item>
+              <Menu.Item onClick={goToMySubscribe} icon={<IconUserPlus size={14} />}>Subscribe</Menu.Item>
             </>
           )}
         </Menu.Dropdown>
@@ -540,19 +533,19 @@ export function AuthForm(props: {
           fullWidth
           leftIcon={<IconBrandGoogle />}
         >
-          {t('login_with_google')}
+          Login with Google
         </Button>
       </Box>
       <Tabs value={activeTab} onTabChange={setActiveTab}>
         <Tabs.List>
-          <Tabs.Tab value="login">{t('login')}</Tabs.Tab>
-          <Tabs.Tab value="subscribe">{t('create_account')}</Tabs.Tab>
+          <Tabs.Tab value="login">Login</Tabs.Tab>
+          <Tabs.Tab value="subscribe">Create account</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="login" pt="xs">
-          <LoginForm cancelButton={!!props.onBack ? <Button variant="default" onClick={onBack}>{t('back')}</Button> : null} />
+          <LoginForm cancelButton={!!props.onBack ? <Button variant="default" onClick={onBack}>Back</Button> : null} />
         </Tabs.Panel>
         <Tabs.Panel value="subscribe" pt="xs">
-          <SubscribeForm cancelButton={!!props.onBack ? <Button variant="default" onClick={onBack}>{t('back')}</Button> : null} />
+          <SubscribeForm cancelButton={!!props.onBack ? <Button variant="default" onClick={onBack}>Back</Button> : null} />
         </Tabs.Panel>
       </Tabs>
     </>

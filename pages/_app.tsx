@@ -4,7 +4,6 @@ import { useHotkeys, useLocalStorage } from '@mantine/hooks';
 import { DatabaseContextProvider } from '../hooks/useDatabase';
 import { NotificationsProvider } from '@mantine/notifications';
 import { AuthContextProvider } from '../hooks/useAuth';
-import { appWithTranslation } from 'next-i18next';
 import { AppProps } from 'next/app';
 import packageJson from '../package.json'
 import PageLayout from '../components/structure/PageLayout';
@@ -67,4 +66,4 @@ function MyApp({ Component, pageProps }: AppProps) {
   )
 }
 
-export default appWithTranslation(MyApp)
+export default MyApp

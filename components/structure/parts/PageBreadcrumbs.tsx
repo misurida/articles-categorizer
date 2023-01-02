@@ -1,5 +1,4 @@
 import { Box, Breadcrumbs, Button } from '@mantine/core';
-import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 interface BreadcrumbsItem {
@@ -28,7 +27,6 @@ export default function PageBreadcrumb(props: {
   basePage?: string
 }) {
 
-  const { t } = useTranslation()
   const router = useRouter()
 
   const buildItem = (name: string, index: number, fullpath: string) => {
@@ -38,13 +36,13 @@ export default function PageBreadcrumb(props: {
     // building the title
     let title = "..."
     if (name === "") {
-      title = props.basePage || t('home')
+      title = props.basePage || "Home"
     }
     else if (!!props.labels && props.labels[name]) {
-      title = t(props.labels[name])
+      title = (props.labels[name])
     }
     else {
-      title = t(name)
+      title = (name)
     }
 
     // building the href

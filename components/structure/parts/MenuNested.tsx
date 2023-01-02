@@ -1,5 +1,4 @@
 import { MenuLink, UserMeta } from "../../../types/shell";
-import { useTranslation } from "next-i18next";
 import { CSSProperties } from "react";
 import { useFirestore } from "../../../hooks/useFirestore";
 import { useRouter } from "next/router";
@@ -16,7 +15,6 @@ import Link from "next/link";
  */
 export function MenuLink(props: MenuLink) {
 
-  const { t } = useTranslation()
   const router = useRouter()
   const { user } = useAuth()
   const { currentUsermeta } = useFirestore()
@@ -37,7 +35,7 @@ export function MenuLink(props: MenuLink) {
         <NavLink
           color={props.color}
           component="a"
-          label={t(props.label)}
+          label={(props.label)}
           active={router.pathname == props.to}
           icon={props.icon}
           rightSection={props.rightSection}
@@ -48,7 +46,7 @@ export function MenuLink(props: MenuLink) {
               key={l.to || l.label}
               icon={l.icon}
               color={l.color}
-              label={t(l.label)}
+              label={(l.label)}
               to={l.to}
               auth={l.auth}
               role={l.role}
@@ -62,7 +60,7 @@ export function MenuLink(props: MenuLink) {
 
   return (
     <NavLink
-      label={t(props.label)}
+      label={(props.label)}
       icon={props.icon}
       color={props.color}
     >
@@ -71,7 +69,7 @@ export function MenuLink(props: MenuLink) {
           key={l.label}
           icon={l.icon}
           color={l.color}
-          label={t(l.label)}
+          label={(l.label)}
           to={l.to}
           auth={l.auth}
           role={l.role}
@@ -102,7 +100,6 @@ export default function MenuNested(props: {
    */
   style?: CSSProperties
 }) {
-  const { t } = useTranslation()
 
   return (
     <div style={props.horizontal ? { display: "flex", marginRight: "auto" } : undefined}>
@@ -111,7 +108,7 @@ export default function MenuNested(props: {
           key={link.label}
           icon={link.icon}
           color={link.color}
-          label={t(link.label)}
+          label={(link.label)}
           to={link.to}
           auth={link.auth}
           role={link.role}
