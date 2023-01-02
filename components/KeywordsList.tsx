@@ -173,7 +173,7 @@ export default function KeywordsList<T>(props: {
                     <IconX size={18} />
                   </ActionIcon>
                 )}
-                <Tooltip withArrow label={`Number of articles (${filteredWordFrequencies.length})`}>
+                <Tooltip withArrow label={`Number of keywords (${filteredWordFrequencies.length})`}>
                   <Badge variant="outline">{filteredWordFrequencies.length}</Badge>
                 </Tooltip>
               </Group>

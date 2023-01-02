@@ -490,7 +490,7 @@ export default function MantineList<T>(props: {
                 <HoverCard.Target>
                   <Menu.Item color={!!sortByScore && sortAsc ? 'blue' : undefined} icon={<IconSortAscending size={14} />} rightSection={<Text size="xs" color="dimmed">asc</Text>}>Score</Menu.Item>
                 </HoverCard.Target>
-                <HoverCard.Dropdown p={5}>
+                <HoverCard.Dropdown>
                   <Menu.Label>Sort by score (ascending)</Menu.Label>
                   <Menu.Divider />
                   {categories.map(c => (
@@ -502,7 +502,7 @@ export default function MantineList<T>(props: {
                 <HoverCard.Target>
                   <Menu.Item color={!!sortByScore && !sortAsc ? 'blue' : undefined} icon={<IconSortDescending size={14} />} rightSection={<Text size="xs" color="dimmed">desc</Text>}>Score</Menu.Item>
                 </HoverCard.Target>
-                <HoverCard.Dropdown p={5}>
+                <HoverCard.Dropdown>
                   <Menu.Label>Sort by score (descending)</Menu.Label>
                   <Menu.Divider />
                   {categories.map(c => (

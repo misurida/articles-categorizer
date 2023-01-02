@@ -11,7 +11,7 @@ import { IconCalculator, IconCheck } from '@tabler/icons'
 import ArticleDetails from '../components/ArticleDetails'
 import KeywordsList from '../components/KeywordsList'
 import { showNotification, updateNotification } from '@mantine/notifications'
-import { intervalToDuration } from 'date-fns'
+import { differenceInSeconds, intervalToDuration } from 'date-fns'
 
 const useStyles = createStyles((theme) => ({
   mainGrid: {
@@ -86,16 +86,16 @@ const Home: NextPage = () => {
     updateNotification({
       id: "compute-scores",
       loading: false,
-      message: `Scores processed! (${computeElapsedTime(start)})`,
+      message: `Scores processed! ${computeElapsedSeconds(start) >= 10 ? `(${computeElapsedTime(start)})` : ""}`,
       color: "green",
       icon: <IconCheck size={18} />,
-      autoClose: false,
+      autoClose: computeElapsedSeconds(start) < 10,
     })
     setScoreDisplaySource("computed")
   }
 
   const computeElapsedTime = (base?: Date) => {
-    if(!base) {
+    if (!base) {
       return "..."
     }
     const diff = intervalToDuration({
@@ -108,6 +108,13 @@ const Home: NextPage = () => {
     return `${diff.minutes?.toString().padStart(2, "0")}:${diff.seconds?.toString().padStart(2, "0")}`
   }
 
+  const computeElapsedSeconds = (base?: Date) => {
+    if (!base) {
+      return 0
+    }
+    return differenceInSeconds(base, new Date())
+  }
+
   const onComputeFrequencies = async () => {
     setFrequencyLoad(true)
     showNotification({
@@ -115,7 +122,7 @@ const Home: NextPage = () => {
       loading: true,
       message: "Processing frequencies...",
       autoClose: false,
-      disallowClose: true,
+      disallowClose: true
     })
     const start = new Date()
     const interval = setInterval(() => {
@@ -124,7 +131,7 @@ const Home: NextPage = () => {
         loading: true,
         message: `Processing frequencies... ${computeElapsedTime(start)}`,
         autoClose: false,
-        disallowClose: true,
+        disallowClose: true
       })
     }, 1000)
     await computeWordsFrequencies()
@@ -133,10 +140,10 @@ const Home: NextPage = () => {
     updateNotification({
       id: "compute-freq",
       loading: false,
-      message: `Frequencies processed! (${computeElapsedTime(start)})`,
+      message: `Frequencies processed! ${computeElapsedSeconds(start) >= 10 ? `(${computeElapsedTime(start)})` : ""}`,
       color: "green",
       icon: <IconCheck size={18} />,
-      autoClose: false,
+      autoClose: computeElapsedSeconds(start) < 10,
     })
   }
 

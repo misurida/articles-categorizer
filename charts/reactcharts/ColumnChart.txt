@@ -1,0 +1,65 @@
+import { useMemo } from "react";
+import { AxisOptions, Chart } from "react-charts";
+
+export default function Bar() {
+
+  type D = {
+    date: Date,
+    stars: number,
+  }
+  
+  type Series = {
+    label: string,
+    data: D[]
+  }
+  
+  const data: Series[] = [
+    {
+      label: 'React Charts',
+      data: [
+        {
+          date: new Date(),
+          stars: 202123,
+        }
+        // ...
+      ]
+    },
+    {
+      label: 'React Query',
+      data: [
+        {
+          date: new Date(),
+          stars: 10234230,
+        }
+      ]
+    }
+  ]
+
+  const primaryAxis = useMemo(
+    (): AxisOptions<D> => ({
+      getValue: datum => datum.date,
+    }),
+    []
+  )
+
+  const secondaryAxes = useMemo(
+    (): AxisOptions<D>[] => [
+      {
+        getValue: datum => datum.stars,
+      },
+    ],
+    []
+  )
+
+  return (
+    <>
+      <Chart
+        options={{
+          data,
+          primaryAxis,
+          secondaryAxes,
+        }}
+      />
+    </>
+  );
+}

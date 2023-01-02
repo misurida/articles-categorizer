@@ -3,7 +3,7 @@ import { IconCalculator } from "@tabler/icons";
 import { format } from "date-fns";
 import { Article, Category } from "../utils/types";
 import { useState, useMemo } from "react";
-import { computeScores, computeSectionScore, countFrequencies, fuzeOptions, getSectionSummary } from "../utils/keywords_handler";
+import { computeScores, computeSectionScore, countFrequencies, fuzeOptions, getLemmatized, getLemmatizedHooks, getSectionSummary } from "../utils/keywords_handler";
 import { useDatabase } from "../hooks/useDatabase";
 import Fuse from "fuse.js";
 import { maxDecimal } from "../utils/helpers";
@@ -106,6 +106,9 @@ const useStyles = createStyles((theme) => ({
   sepStat: {
     borderRight: `thin solid ${theme.colorScheme === "dark" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`,
     paddingRight: 10
+  },
+  diff: {
+    color: theme.colors.blue[8]
   }
 }));
 
@@ -114,15 +117,15 @@ export function CategoryPreview(props: {
   article?: Article
 }) {
 
-  const { classes } = useStyles()
+  const { classes, cx } = useStyles()
 
   const titleIndex = useMemo(() => props.article ? new Fuse(props.article.out.process_sections.title.split(" "), fuzeOptions) : null, [props.article])
   const bodyIndex = useMemo(() => props.article ? new Fuse(props.article.out.process_sections.body.split(" "), fuzeOptions) : null, [props.article])
 
-  const countTitleFrequency = (hook: string, returnRes = false, fuzzy = false) => {
+  const countTitleFrequency = (hook: string, returnRes = false, fuzzy?: boolean) => {
     if (props.article && titleIndex) {
       if (!fuzzy) {
-        return countFrequencies(hook.split("|"), props.article.out.process_sections.title.split(" "))
+        return countFrequencies(hook.split("|"), props.article.out.process_sections.title.split(" "), props.article.out.infer_language)
       }
       const res = titleIndex.search(hook.split("|").map(e => `"${e}"`).join("|"))
       return returnRes ? res : res.length
@@ -130,10 +133,10 @@ export function CategoryPreview(props: {
     return null
   }
 
-  const countBodyFrequency = (hook: string, returnRes = false, fuzzy = false) => {
+  const countBodyFrequency = (hook: string, returnRes = false, fuzzy?: boolean) => {
     if (props.article && bodyIndex) {
       if (!fuzzy) {
-        return countFrequencies(hook.split("|"), props.article.out.process_sections.body.split(" "))
+        return countFrequencies(hook.split("|"), props.article.out.process_sections.body.split(" "), props.article.out.infer_language)
       }
       const res = bodyIndex.search(hook.split("|").map(e => `"${e}"`).join("|"))
       return returnRes ? res : res.length
@@ -141,7 +144,9 @@ export function CategoryPreview(props: {
     return null
   }
 
-  const fuzzy = false
+  const checkLem = (str: string) => {
+    console.log(getLemmatized(str))
+  }
 
   return (
     <Stack spacing="xs" sx={{ textAlign: "left" }}>
@@ -159,34 +164,21 @@ export function CategoryPreview(props: {
           {props.category?.rules?.map((r, i) => (
             <tr key={r.hook}>
               <td><Text size="xs">{i + 1}.</Text></td>
-              <td><Text size="xs">{r.hook}</Text></td>
-              <td>
-                {fuzzy ? (
-                  <Popover position="bottom" withArrow shadow="md">
-                    <Popover.Target>
-                      <Text size="xs">{countTitleFrequency(r.hook, false, fuzzy) as any || null}</Text>
-                    </Popover.Target>
-                    <Popover.Dropdown>
-                      <Text size="sm"><pre>{JSON.stringify((countTitleFrequency(r.hook, true, fuzzy) as any[])?.map(e => e.item), null, 2)}</pre></Text>
-                    </Popover.Dropdown>
-                  </Popover>
-                ) : (
-                  <Text size="xs">{countTitleFrequency(r.hook, false, fuzzy) as any || null}</Text>
-                )}
+              <td onClick={() => checkLem(r.hook)}>
+                <Text size="xs">
+                  <span
+                    className={cx({ [classes.diff]: r.hook.split("|").length !== getLemmatizedHooks(r.hook.split("|"), props.article?.out?.infer_language).length })}
+                    title={r.hook}
+                  >
+                    {getLemmatizedHooks(r.hook.split("|"), props.article?.out?.infer_language).join(" | ")}
+                  </span>
+                </Text>
               </td>
               <td>
-                {fuzzy ? (
-                  <Popover position="bottom" withArrow shadow="md">
-                    <Popover.Target>
-                      <Text size="xs">{countBodyFrequency(r.hook) as any || null}</Text>
-                    </Popover.Target>
-                    <Popover.Dropdown>
-                      <Text size="sm"><pre>{JSON.stringify((countBodyFrequency(r.hook, true) as any[])?.map(e => e.item), null, 2)}</pre></Text>
-                    </Popover.Dropdown>
-                  </Popover>
-                ) : (
-                  <Text size="xs">{countBodyFrequency(r.hook) as any || null}</Text>
-                )}
+                <Text size="xs">{countTitleFrequency(r.hook, false) as any || null}</Text>
+              </td>
+              <td>
+                <Text size="xs">{countBodyFrequency(r.hook) as any || null}</Text>
               </td>
             </tr>
           ))}
@@ -256,11 +248,11 @@ export function ComputedScoresRow(props: {
   const { classes } = useStyles()
 
   const titleSummary = useMemo(() => {
-    return computeSectionScore(props.article?.out?.process_sections?.title?.split(" ") || [], props.category.rules)
+    return computeSectionScore(props.article?.out?.process_sections?.title?.split(" ") || [], props.category.rules, props.article?.out?.infer_language)
   }, [props.article, props.category])
 
   const bodySummary = useMemo(() => {
-    return computeSectionScore(props.article?.out?.process_sections?.body?.split(" ") || [], props.category.rules)
+    return computeSectionScore(props.article?.out?.process_sections?.body?.split(" ") || [], props.category.rules, props.article?.out?.infer_language)
   }, [props.article, props.category])
 
   return (
@@ -394,7 +386,7 @@ export default function ArticleDetails(props: {
               <tbody>
                 <tr><th scope="row"><Text>Title</Text></th><td><Text>{props.article?.std?.title}</Text></td></tr>
                 {props.article?.std?.publication_datetime && <tr><th scope="row"><Text>Publication</Text></th><td><Text>{format(new Date(props.article?.std?.publication_datetime), "PPpp")}</Text></td></tr>}
-                <tr><th scope="row"><Text>Lang code</Text></th><td><Text>{props.article?.std?.lang_code}</Text></td></tr>
+                <tr><th scope="row"><Text>Lang code</Text></th><td><Text>{props.article?.out?.infer_language}</Text></td></tr>
                 <tr><th scope="row"><Text>Url</Text></th><td><Text><a href={props.article?.std?.url}>{props.article?.std?.url}</a></Text></td></tr>
                 <tr><th scope="row"><Text>Publisher name</Text></th><td><Text>{props.article?.non_std?.publisher_name}</Text></td></tr>
                 <tr><th scope="row"><Text>Source name</Text></th><td><Text>{props.article?.non_std?.source_name}</Text></td></tr>

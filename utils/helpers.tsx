@@ -502,7 +502,7 @@ export function removeDuplicatesBy(arr: any[], by = "id") {
  * @returns 
  */
 export function maxDecimal(num: any, precision = 2) {
-  const r = +(Math.round(num + `e+${precision}` as any)  + `e-${precision}`);
-  if(!isNaN(r)) return r
+  const r = +(Math.round(num + `e+${precision}` as any) + `e-${precision}`);
+  if (!isNaN(r)) return r
   return null
 }

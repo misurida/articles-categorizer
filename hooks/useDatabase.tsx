@@ -219,7 +219,7 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   }
 
   const computeArticles = async () => {
-    articlesComputationsWorker?.postMessage({ articles, categories: dataset?.categories || [] })
+    articlesComputationsWorker?.postMessage({ articles: JSON.parse(JSON.stringify(articles)), categories: dataset?.categories || [] })
     return new Promise<void>((resolve, reject) => {
       articlesComputationsWorker?.addEventListener('message', (event) => {
         setArticles(event.data)
@@ -229,7 +229,7 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   }
 
   const computeWordsFrequencies = async () => {
-    wordsFrequenciesWorker?.postMessage({ articles: filteredArticles })
+    wordsFrequenciesWorker?.postMessage({ articles: JSON.parse(JSON.stringify(filteredArticles)) })
     return new Promise<void>((resolve, reject) => {
       wordsFrequenciesWorker?.addEventListener('message', (event) => {
         setWordsFrequencies(event.data)

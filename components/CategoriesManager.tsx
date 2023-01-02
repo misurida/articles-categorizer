@@ -1,4 +1,4 @@
-import { Box, Button, Modal, Paper, Popover, Stack, Switch, Title, Tooltip, Text, Input, Tabs } from "@mantine/core";
+import { Box, Button, Modal, Paper, Popover, Stack, Switch, Title, Tooltip, Text, Input, Tabs, Collapse } from "@mantine/core";
 import { IconCheck, IconChevronDown, IconPlus } from "@tabler/icons";
 import { useMemo, useState } from "react";
 import { useDatabase } from "../hooks/useDatabase";
@@ -9,6 +9,7 @@ import CategoriesTree from "./CategoriesTree";
 import CategoryForm from "./CategoryForm";
 import { showNotification } from "@mantine/notifications";
 import { TabsValue } from "@mantine/core/lib/Tabs";
+import CategoriesStatistics from "./CategoriesStatistics";
 
 
 export default function CategoriesManager(props: {
@@ -20,6 +21,8 @@ export default function CategoriesManager(props: {
   const [showEdit, setShowEdit] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<Category | undefined>()
   const { user } = useAuth()
+  const [showStats, setShowStats] = useState(false)
+  const [showPopover, setShowPopover] = useState(false)
 
   const categories = useMemo(() => {
     return dataset?.categories || []
@@ -92,14 +95,24 @@ export default function CategoriesManager(props: {
         buttonChildren={(
           <>
             <Button compact leftIcon={<IconPlus size={16} />} onClick={() => setShowNew(true)}>Add new</Button>
-            <Popover position="bottom" withArrow shadow="lg">
+            <Popover position="bottom" withArrow shadow="lg" opened={showPopover} onChange={setShowPopover}>
               <Popover.Target>
-                <Button compact variant='default' rightIcon={<IconChevronDown size={16} />}>
+                <Button compact variant='default' onClick={() => setShowPopover(v => !v)} rightIcon={<IconChevronDown size={16} />}>
                   <Text weight="normal">Options</Text>
                 </Button>
               </Popover.Target>
               <Popover.Dropdown sx={{ maxWidth: "90vw" }}>
                 <Button mb="xs" fullWidth variant="default" onClick={unselectAll}>Unselect all</Button>
+                <Button
+                  mb="xs"
+                  fullWidth
+                  variant="default"
+                  onClick={() => {
+                    setShowStats(true)
+                    setShowPopover(false)
+                  }}>
+                  Statistics
+                </Button>
                 {selectedCategories.length > 0 && (
                   <Input.Wrapper mb="md" label="Category selection mode" description="Affect the articles filtering">
                     <Stack align="flex-start">
@@ -107,7 +120,7 @@ export default function CategoriesManager(props: {
                     </Stack>
                   </Input.Wrapper>
                 )}
-                <Text mb="md">Category displayed info</Text>
+                <Text mb="md">Displayed info</Text>
                 <Stack spacing="xs">
                   <Switch label="Color" checked={!!categoryRowDetails.color} onChange={(event) => handleChangeDisplay('color', event.currentTarget.checked)} />
                   <Switch label="Display button" checked={!!categoryRowDetails.display_button} onChange={(event) => handleChangeDisplay('display_button', event.currentTarget.checked)} />
@@ -159,6 +172,15 @@ export default function CategoriesManager(props: {
           category={selectedCategory}
           onDelete={val => onDelete(val as any)}
         />
+      </Modal>
+
+      <Modal
+        opened={showStats}
+        onClose={() => setShowStats(false)}
+        title="Categories statistics"
+        size="xl"
+      >
+        <CategoriesStatistics />
       </Modal>
     </Box>
   )

@@ -103,8 +103,6 @@ export const getWordFrequencies = (arr: string[]) => {
 }
 
 
-
-
 /**
  * Return metrics from an array of string.
  * 
@@ -137,6 +135,37 @@ export const getSectionSummary = (arr: string[]) => {
   };
 }
 
+
+import translations from '../translations.json'
+
+export function getTranslation(text: string, lang: string): string {
+  const row = (translations as Record<string, string>[]).find(e => e.name === text)
+  if (row) {
+    return row[lang]?.toLowerCase() || text
+  }
+  return text
+}
+
+
+export const getLemmatizedHooks = (hooks: string[], lang?: string) => {
+  const h = hooks.reduce((a, e) => {
+    const o = []
+    o.push(e)
+    const l = getLemmatized(e)
+    if (l !== e) {
+      o.push(l)
+    }
+    if (lang && lang !== "en") {
+      const t = getTranslation(e, lang)
+      if (t !== e) {
+        o.push(t)
+      }
+    }
+    return [...a, ...o]
+  }, [] as string[])
+  return h
+}
+
 /**
  * Count the number needles (hooks) in a haystack (pool).
  * 
@@ -144,12 +173,13 @@ export const getSectionSummary = (arr: string[]) => {
  * @param pool The string to count from.
  * @returns A count.
  */
-export const countFrequencies = (hooks: string[], pool: string[]) => {
+export const countFrequencies = (hooks: string[], pool: string[], lang?: string) => {
+  const hooksList = getLemmatizedHooks(hooks, lang)
+  // poolText version: the take into account the hooks containing spaces, a regex-based count is used on the whole text for each hook
+  const poolText = pool.join(" ")
   let count = 0;
-  for (const p of pool) {
-    if (hooks.includes(p)) {
-      count++
-    }
+  for (const h of hooksList) {
+    count += poolText.match(new RegExp(`(?:^|\\s)${h}(?:$|\\s)`, 'gi'))?.length || 0
   }
   return count
 }
@@ -161,14 +191,14 @@ export const countFrequencies = (hooks: string[], pool: string[]) => {
  * @param rules The keywords rules.
  * @returns score metrics.
  */
-export const computeSectionScore = (arr: string[], rules: KeywordRule[]): Record<string, number> => {
+export const computeSectionScore = (arr: string[], rules: KeywordRule[], lang?: string): Record<string, number> => {
   const summary = getSectionSummary(arr)
   const l = rules.length
   let f_unique = 0
   let f_total = 0
   for (const rule of rules) {
     const hooks = rule.hook.split("|")
-    const count = countFrequencies(hooks, arr)
+    const count = countFrequencies(hooks, arr, lang)
     f_total += count
     if (count > 0) {
       f_unique++
@@ -201,8 +231,8 @@ export const computeScore = (article: Article, category: Category) => {
   const rules = category.rules
 
   if (rules) {
-    score += computeSectionScore(article.out.process_sections.title.split(" "), rules).f_agg
-    score += computeSectionScore(article.out.process_sections.body.split(" "), rules).f_agg
+    score += computeSectionScore(article.out.process_sections.title.split(" "), rules, article.out.infer_language).f_agg
+    score += computeSectionScore(article.out.process_sections.body.split(" "), rules, article.out.infer_language).f_agg
   }
 
   return score
@@ -219,3 +249,23 @@ export const computeScores = (article: Article, categories: Category[]) => {
   const scores = categories.reduce((a, c) => ({ ...a, [c.key]: computeScore(article, c) }), {})
   return scores
 }
+
+
+const lemmatize = require('wink-lemmatizer')
+
+export const getLemmatized = (str: string) => {
+  const noun = lemmatize.noun(str)
+  if (noun !== str) {
+    return noun
+  }
+  const ajd = lemmatize.adjective(str)
+  if (ajd !== str) {
+    return ajd
+  }
+  const verb = lemmatize.verb(str)
+  if (verb !== str) {
+    return verb
+  }
+  return str
+}
+
