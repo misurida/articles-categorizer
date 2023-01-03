@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsExporting from 'highcharts/modules/exporting'
 import { uuidv4 } from '../../utils/helpers';
@@ -16,28 +16,6 @@ export interface HighchartsProps {
 
 
 export default function ColumnChart(props: HighchartsProps) {
-
-  const [state, setState] = useState<Highcharts.Options>({
-    chart: {
-      type: 'column'
-    },
-    title: {
-      text: props.title
-    },
-    xAxis: {
-      categories: props.categories || ['A', 'B', 'C'],
-    },
-    series: props.series,
-    /* plotOptions: {
-      series: {
-        point: {
-          events: {
-            //mouseOver: this.setHoverData.bind(this)
-          }
-        }
-      }
-    } */
-  })
 
   const id = uuidv4()
 
@@ -74,7 +52,6 @@ export default function ColumnChart(props: HighchartsProps) {
       series: props.series
     });
   }, [props.categories, props.series, props.title])
-
 
 
   return (

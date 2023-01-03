@@ -196,21 +196,24 @@ export const computeSectionScore = (arr: string[], rules: KeywordRule[], lang?: 
   const l = rules.length
   let f_unique = 0
   let f_total = 0
+  let weight_total = 0
   for (const rule of rules) {
     const hooks = rule.hook.split("|")
+    // # alternative: counting all hook pieces and taking the max.
     const count = countFrequencies(hooks, arr, lang)
-    f_total += count
+    const z = min(1, count / summary.avgFreq)
+    f_total += z * (rule.weight || 1)
+    weight_total += (rule.weight || 1)
     if (count > 0) {
       f_unique++
     }
   }
-  const z = min(1, f_total / summary.avgFreq)
-  const f_agg = (f_total + f_unique) / (2 * l)
+  const f_agg = ((f_unique / l) + (f_total / weight_total)) / 2
+
   return {
     l,
     f_unique,
     f_total,
-    z,
     f_agg,
     avgFreq: summary.avgFreq,
     maxFreq: summary.maxFreq,
@@ -229,13 +232,21 @@ export const computeScore = (article: Article, category: Category) => {
 
   let score = 0
   const rules = category.rules
+  let weight_total = 4
 
   if (rules) {
-    score += computeSectionScore(article.out.process_sections.title.split(" "), rules, article.out.infer_language).f_agg
-    score += computeSectionScore(article.out.process_sections.body.split(" "), rules, article.out.infer_language).f_agg
+    const titleScore = computeSectionScore(article.out.process_sections.title.split(" "), rules, article.out.infer_language).f_agg
+    const bodyScore = computeSectionScore(article.out.process_sections.body.split(" "), rules, article.out.infer_language).f_agg
+    if(titleScore > 0) {
+      score +=  3 * (titleScore + 1)
+    }
+    if(bodyScore > 0) {
+      score += 1 * (bodyScore + 1)
+    }
+    score = score / weight_total * 10
   }
 
-  return score
+  return Number(min(score, 10).toFixed(1))
 }
 
 /**
