@@ -79,8 +79,8 @@ export default function DisplayOptionsPanel() {
         >
           <Radio value="legacy" label="Legacy" />
           <Radio value="computed" label="Computed" />
-          <Radio value="" label="Auto" />
           <Radio value="delta" label="Delta" />
+          <Radio value="" label={<Text sx={{opacity: 0.5}} italic>Combined</Text>} />
         </Radio.Group>
         <Input.Wrapper label="Scores mode" className={classes.seg}>
           <SegmentedControl

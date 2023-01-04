@@ -202,7 +202,7 @@ export function CustomNode(props: {
   const displayButtonElement = () => {
     let label = "Hide the other scores"
     let innerContent = (
-      <ActionIcon onClick={toggleDisplay} sx={{opacity: 0.5}}>
+      <ActionIcon onClick={toggleDisplay} sx={{ opacity: 0.5 }}>
         <IconEye size={16} />
       </ActionIcon>
     )

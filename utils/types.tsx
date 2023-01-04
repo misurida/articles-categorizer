@@ -51,13 +51,16 @@ export type DisplaySources = "legacy" | "computed" | "delta"
 
 export type SectionName = 'title' | 'body' | 'snippet'
 export interface KeywordRule {
-  hook: string
+  hook?: string
+  inactive?: boolean
   must_contain_any?: string[]
   must_contain_all?: string[]
   must_not_contain?: string[]
-  restrict_sections?: SectionName[]
-  enforce_maximum?: boolean
   weight?: number
+  boost?: number
+  
+  title?: KeywordRule
+  body?: KeywordRule
 }
 
 export interface Category {

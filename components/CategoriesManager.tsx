@@ -23,6 +23,7 @@ export default function CategoriesManager(props: {
   const { user } = useAuth()
   const [showStats, setShowStats] = useState(false)
   const [showPopover, setShowPopover] = useState(false)
+  const [quickRules, setQuickRules] = useState(false)
 
   const categories = useMemo(() => {
     return dataset?.categories || []
@@ -80,6 +81,7 @@ export default function CategoriesManager(props: {
 
   const unselectAll = () => {
     setSelectedCategories([])
+    setShowPopover(false)
   }
 
   return (
@@ -113,14 +115,19 @@ export default function CategoriesManager(props: {
                   }}>
                   Statistics
                 </Button>
+                <Input.Wrapper mb="md" label="Quick rules">
+                  <Stack align="flex-start">
+                    <Switch size="md" onLabel="ON" offLabel="OFF" checked={quickRules} onChange={(event) => setQuickRules(event.currentTarget.checked)} />
+                  </Stack>
+                </Input.Wrapper>
                 {selectedCategories.length > 0 && (
-                  <Input.Wrapper mb="md" label="Category selection mode" description="Affect the articles filtering">
+                  <Input.Wrapper mb="md" label="AND / OR">
                     <Stack align="flex-start">
                       <Switch size="md" onLabel="AND" offLabel="OR" checked={andMode} onChange={(event) => setAndMode(event.currentTarget.checked)} />
                     </Stack>
                   </Input.Wrapper>
                 )}
-                <Text mb="md">Displayed info</Text>
+                <Text mb="xs" size="sm">Displayed info:</Text>
                 <Stack spacing="xs">
                   <Switch label="Color" checked={!!categoryRowDetails.color} onChange={(event) => handleChangeDisplay('color', event.currentTarget.checked)} />
                   <Switch label="Display button" checked={!!categoryRowDetails.display_button} onChange={(event) => handleChangeDisplay('display_button', event.currentTarget.checked)} />
@@ -133,7 +140,7 @@ export default function CategoriesManager(props: {
         )}
       />
 
-      {selectedCategories.length > 0 && (
+      {quickRules && selectedCategories.length > 0 && (
         <Paper withBorder p="sm">
           <Tabs mb="xs" value={selectedCategory?.id} onTabChange={setActiveTab} sx={{ maxWidth: "max(400px, 35vw)" }}>
             <Tabs.List>

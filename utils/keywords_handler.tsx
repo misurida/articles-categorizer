@@ -1,5 +1,10 @@
 import { Article, Category, KeywordRule, WordFrequency } from "./types";
 
+export const defaultWeights = {
+  title: 3,
+  body: 1
+}
+
 export const fuzeOptions = {
   // isCaseSensitive: false,
   includeScore: false,
@@ -152,7 +157,7 @@ export const getLemmatizedHooks = (hooks: string[], lang?: string) => {
     const o = []
     o.push(e)
     const l = getLemmatized(e)
-    if (l !== e) {
+    if (l && l !== e) {
       o.push(l)
     }
     if (lang && lang !== "en") {
@@ -198,7 +203,7 @@ export const computeSectionScore = (arr: string[], rules: KeywordRule[], lang?: 
   let f_total = 0
   let weight_total = 0
   for (const rule of rules) {
-    const hooks = rule.hook.split("|")
+    const hooks = rule.hook?.split("|") || []
     // # alternative: counting all hook pieces and taking the max.
     const count = countFrequencies(hooks, arr, lang)
     const z = min(1, count / summary.avgFreq)
@@ -277,6 +282,6 @@ export const getLemmatized = (str: string) => {
   if (verb !== str) {
     return verb
   }
-  return str
+  return null
 }
 

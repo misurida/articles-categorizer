@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
-import { TextInput, Group, Button, Stack, ActionIcon, Box, Collapse, Tooltip, MultiSelect, Switch, NumberInput, Paper, Modal, JsonInput, ColorInput, Text, createStyles, Popover } from "@mantine/core";
+import React, { useEffect, useState } from "react";
+import { TextInput, Group, Button, Stack, ActionIcon, Box, Collapse, Tooltip, MultiSelect, Switch, NumberInput, Paper, Modal, JsonInput, ColorInput, Text, createStyles, Popover, Tabs, Badge } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { Category, KeywordRule, SectionName } from "../utils/types";
+import { Category, KeywordRule } from "../utils/types";
 import { stringToKey } from "../utils/helpers";
-import { IconEdit, IconMinus, IconPlus } from "@tabler/icons";
+import { IconCalculator, IconCheck, IconEdit, IconMinus, IconPlus } from "@tabler/icons";
+import { defaultWeights, getLemmatized } from "../utils/keywords_handler";
+import { useDebouncedValue } from "@mantine/hooks";
 
 
 const useStyles = createStyles((theme) => ({
@@ -27,10 +29,131 @@ const useStyles = createStyles((theme) => ({
   },
   hookInput: {
     "input": {
-      height: 28
+      height: 28,
     }
+  },
+  paddedInput: {
+    "input": {
+      paddingRight: "30px"
+    }
+  },
+  disabledSection: {
+    opacity: 0.5
   }
 }))
+
+
+export function RuleInputForm(props: {
+  rule?: KeywordRule
+  onChange: (rule: KeywordRule) => void
+  label?: string
+  weightPlaceholder?: string
+  showInactive?: boolean
+}) {
+
+  const [localValue, setLocalValue] = useState<KeywordRule | undefined>()
+  //const [debounced] = useDebouncedValue<KeywordRule | undefined>(localValue, 100)
+
+  useEffect(() => {
+    setLocalValue(props.rule)
+  }, [props.rule])
+
+  /* useEffect(() => {
+    if (debounced) {
+      props.onChange(debounced)
+    }
+  }, [debounced]) */
+
+  const onArrayUpdate = (target: keyof KeywordRule, value: string[]) => {
+    let v = { ...(props.rule || {}), [target]: value }
+    if (!(v[target] as string[])?.length) delete v[target]
+    props.onChange(v as KeywordRule)
+  }
+
+  const onNumberUpdate = (target: keyof KeywordRule, value?: number) => {
+    let v = { ...(props.rule || {}), [target]: value }
+    if (v[target] === undefined || v[target] === null) delete v[target]
+    props.onChange(v as KeywordRule)
+  }
+
+  const onBooleanUpdate = (target: keyof KeywordRule, value?: boolean) => {
+    let v = { ...(props.rule || {}), [target]: value }
+    if (!v[target]) delete v[target]
+    props.onChange(v as KeywordRule)
+  }
+
+  return (
+    <Stack spacing={5}>
+      {props.showInactive && (
+        <Switch
+          mt={5}
+          size="xs"
+          label={`Search in ${props.label || "section"}`}
+          checked={!localValue?.inactive}
+          onChange={(event) => onBooleanUpdate('inactive', !event.currentTarget.checked)}
+        />
+      )}
+      <MultiSelect
+        aria-label="Must contain any (value)"
+        title="Must contain any"
+        placeholder="Must contain any..."
+        data={(localValue?.must_contain_any || []) as string[]}
+        value={(localValue?.must_contain_any || []) as string[]}
+        searchable
+        creatable
+        getCreateLabel={(query) => `+ Add « ${query} »`}
+        onCreate={query => query.toLowerCase()}
+        onChange={e => onArrayUpdate('must_contain_any', e)}
+        disabled={props.showInactive && localValue?.inactive}
+      />
+      <MultiSelect
+        aria-label="Must contain all (value)"
+        title="Must contain all"
+        placeholder="Must contain all..."
+        data={(localValue?.must_contain_all || []) as string[]}
+        value={(localValue?.must_contain_all || []) as string[]}
+        searchable
+        creatable
+        getCreateLabel={(query) => `+ Add « ${query} »`}
+        onCreate={query => query.toLowerCase()}
+        onChange={e => onArrayUpdate('must_contain_all', e)}
+        disabled={props.showInactive && localValue?.inactive}
+      />
+      <MultiSelect
+        aria-label="Must not contain (value)"
+        title="Must not contain"
+        placeholder="Must not contain..."
+        data={(localValue?.must_not_contain || []) as string[]}
+        value={(localValue?.must_not_contain || []) as string[]}
+        searchable
+        creatable
+        getCreateLabel={(query) => `+ Add « ${query} »`}
+        onCreate={query => query.toLowerCase()}
+        onChange={e => onArrayUpdate('must_not_contain', e)}
+        disabled={props.showInactive && localValue?.inactive}
+      />
+      <NumberInput
+        aria-label="Weight (value)"
+        min={0}
+        type="number"
+        value={localValue?.weight || undefined}
+        placeholder={props.weightPlaceholder || "Weight..."}
+        onChange={e => onNumberUpdate('weight', e)}
+        precision={2}
+        step={0.1}
+        disabled={props.showInactive && localValue?.inactive}
+      />
+      <NumberInput
+        aria-label="Boost (value)"
+        value={localValue?.boost || undefined}
+        placeholder="Boost..."
+        onChange={e => onNumberUpdate('boost', e)}
+        precision={1}
+        disabled={props.showInactive && localValue?.inactive}
+      />
+    </Stack>
+  )
+}
 
 
 export function RuleInput(props: {
@@ -39,31 +162,64 @@ export function RuleInput(props: {
   onDelete: () => void
 }) {
 
-  const { classes } = useStyles()
+  const { classes, cx } = useStyles()
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [activeTab, setActiveTab] = useState<string | null>('all');
+  const [showLemmatize, setShowLemmatize] = useState(false)
+  const [lemmatizedValues, setLemmatizedValues] = useState<string[]>([])
 
-  const onMustContainAnyChange = (value: string[]) => {
-    props.onChange({ ...props.rule, must_contain_any: value })
+  const [localValue, setLocalValue] = useState<string | undefined>()
+
+  useEffect(() => {
+    setLocalValue(props.rule.hook)
+  }, [props.rule])
+
+  const onSaveHook = () => {
+    props.onChange({ ...props.rule, hook: localValue })
   }
 
-  const onMustContainAllChange = (value: string[]) => {
-    props.onChange({ ...props.rule, must_contain_all: value })
+  const onHookKeyup = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      onSaveHook()
+    }
   }
 
-  const onMustNotContainChange = (value: string[]) => {
-    props.onChange({ ...props.rule, must_not_contain: value })
+  const handleChange = (value: KeywordRule, target?: string) => {
+    if (target !== undefined) {
+      let v = JSON.parse(JSON.stringify(props.rule))
+      if (!Object.keys(value).length && v[target]) {
+        delete v[target]
+      }
+      else {
+        v[target] = value
+      }
+      props.onChange(v)
+    }
+    else {
+      props.onChange(value)
+    }
   }
 
-  const onRestrictSectionsChange = (value: SectionName[]) => {
-    props.onChange({ ...props.rule, restrict_sections: value })
+  const computeLemmatize = () => {
+    if (props.rule?.hook) {
+      const base = props.rule.hook.split("|")
+      const lemmat = base.map(h => getLemmatized(h)).filter(e => !!e && !base.includes(e))
+      setLemmatizedValues(lemmat)
+      setShowLemmatize(v => !v)
+    }
   }
 
-  const onEnforceMaximumChange = (value: boolean) => {
-    props.onChange({ ...props.rule, enforce_maximum: value })
+  const addLemmatized = () => {
+    const t = props.rule.hook?.split("|") || []
+    const tab = [...t, ...lemmatizedValues]
+    setLocalValue(tab.join("|"))
+    onSaveHook()
+    setShowLemmatize(false)
   }
 
-  const onWeightChange = (value: number) => {
-    props.onChange({ ...props.rule, weight: value })
+  const toggleOptions = () => {
+    setShowAdvanced(v => !v)
+    setShowLemmatize(false)
   }
 
   return (
@@ -71,17 +227,22 @@ export function RuleInput(props: {
       <Stack spacing={5}>
         <Group spacing={5}>
           <TextInput
-            className={classes.hookInput}
+            className={cx(classes.hookInput, { [classes.paddedInput]: (!!props.rule.hook && !!localValue) && localValue !== props.rule.hook })}
             sx={{ flex: 1 }}
-            withAsterisk
-            placeholder="Enter rule hook..."
-            value={props.rule.hook}
+            value={localValue || ""}
             variant="unstyled"
-            px="xs"
-            onChange={e => props.onChange({ ...props.rule, hook: e.target.value.toLowerCase() })}
+            onChange={e => setLocalValue(e.target.value)}
+            onKeyUp={onHookKeyup}
+            rightSection={(!!props.rule.hook && !!localValue) && localValue !== props.rule.hook && (
+              <Tooltip withArrow label="Save">
+                <ActionIcon size="xs" onClick={onSaveHook}>
+                  <IconCheck size={16} />
+                </ActionIcon>
+              </Tooltip>
+            )}
           />
           <Tooltip withArrow label="Rule options">
-            <ActionIcon onClick={() => setShowAdvanced(v => !v)}>
+            <ActionIcon onClick={toggleOptions}>
               <IconEdit size={16} />
             </ActionIcon>
           </Tooltip>
@@ -91,68 +252,75 @@ export function RuleInput(props: {
             </ActionIcon>
           </Tooltip>
         </Group>
-        <Collapse in={showAdvanced}>
-          <Paper p={5} withBorder mb="md">
-            <Stack spacing={5}>
-              <MultiSelect
-                title="Sections"
-                data={["title", "snippet", "body"]}
-                value={(props.rule.restrict_sections || []) as string[]}
-                placeholder="Sections..."
-                onChange={onRestrictSectionsChange}
-              />
-              <MultiSelect
-                title="Must contain any"
-                placeholder="Must contain any..."
-                data={(props.rule.must_contain_any || []) as string[]}
-                value={(props.rule.must_contain_any || []) as string[]}
-                searchable
-                creatable
-                getCreateLabel={(query) => `+ Add ${query}`}
-                onCreate={query => query.toLowerCase()}
-                onChange={onMustContainAnyChange}
-              />
-              <MultiSelect
-                title="Must contain all"
-                placeholder="Must contain all..."
-                data={(props.rule.must_contain_all || []) as string[]}
-                value={(props.rule.must_contain_all || []) as string[]}
-                searchable
-                creatable
-                getCreateLabel={(query) => `+ Add ${query}`}
-                onCreate={query => query.toLowerCase()}
-                onChange={onMustContainAllChange}
-              />
-              <MultiSelect
-                title="Must not contain"
-                placeholder="Must not contain..."
-                data={(props.rule.must_not_contain || []) as string[]}
-                value={(props.rule.must_not_contain || []) as string[]}
-                searchable
-                creatable
-                getCreateLabel={(query) => `+ Add ${query}`}
-                onCreate={query => query.toLowerCase()}
-                onChange={onMustNotContainChange}
-              />
-              <Switch
-                sx={{ display: "flex", alignItems: "center" }}
-                label="Enforce maximum"
-                checked={!!props.rule.enforce_maximum}
-                onChange={e => onEnforceMaximumChange(e.currentTarget.checked)}
-              />
-              <NumberInput
-                value={props.rule.weight || undefined}
-                placeholder="Weight..."
-                onChange={onWeightChange}
-              />
-            </Stack>
-          </Paper>
-        </Collapse>
+        {showAdvanced && (
+          <Collapse in={showAdvanced}>
+            <Paper p={5} withBorder mb="md">
+              <Tabs value={activeTab} onTabChange={setActiveTab}>
+                <Tabs.List>
+                  <Tabs.Tab p={5} value="all"><Text size="xs">All sections</Text></Tabs.Tab>
+                  <Tabs.Tab p={5} value="title"><Text size="xs" className={cx({ [classes.disabledSection]: props.rule?.title?.inactive })}>Title</Text></Tabs.Tab>
+                  <Tabs.Tab p={5} value="body"><Text size="xs" className={cx({ [classes.disabledSection]: props.rule?.body?.inactive })}>Body</Text></Tabs.Tab>
+                  <Popover opened={showLemmatize} onChange={setShowLemmatize}>
+                    <Popover.Target>
+                      <Tooltip label="Lemmatization" withArrow>
+                        <ActionIcon ml="auto">
+                          <IconCalculator onClick={computeLemmatize} size={14} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Popover.Target>
+                    <Popover.Dropdown>
+                      {lemmatizedValues.length > 0 ? (
+                        <Box>
+                          <Text mb={5}>Lemmatized values:</Text>
+                          <Group align="center">
+                            {lemmatizedValues.map(l => (
+                              <Badge sx={{ textTransform: "none" }} key={l}>{l}</Badge>
+                            ))}
+                          </Group>
+                          <Group position="right">
+                            <Button compact size="xs" mt="xs" onClick={addLemmatized}>Add lemmatized</Button>
+                          </Group>
+                        </Box>
+                      ) : (
+                        <Text>No lemmatize...</Text>
+                      )}
+
+                    </Popover.Dropdown>
+                  </Popover>
+                </Tabs.List>
+
+                <Tabs.Panel value="all" mt={5}>
+                  <RuleInputForm
+                    rule={props.rule}
+                    onChange={v => handleChange(v)}
+                  />
+                </Tabs.Panel>
+                <Tabs.Panel value="title" mt={5}>
+                  <RuleInputForm
+                    rule={props.rule.title}
+                    onChange={v => handleChange(v, 'title')}
+                    weightPlaceholder={`Default weight: ${defaultWeights.title}`}
+                    showInactive
+                    label="Title"
+                  />
+                </Tabs.Panel>
+                <Tabs.Panel value="body" mt={5}>
+                  <RuleInputForm
+                    rule={props.rule.body}
+                    onChange={v => handleChange(v, 'body')}
+                    weightPlaceholder={`Default weight: ${defaultWeights.body}`}
+                    showInactive
+                    label="Body"
+                  />
+                </Tabs.Panel>
+              </Tabs>
+            </Paper>
+          </Collapse>
+        )}
       </Stack>
     </Box>
   )
 }
-
 
 
 

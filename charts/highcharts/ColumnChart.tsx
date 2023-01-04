@@ -22,7 +22,8 @@ export default function ColumnChart(props: HighchartsProps) {
   useEffect(() => {
     Highcharts.chart(id, {
       chart: {
-        type: 'column'
+        type: 'column',
+        zoomType: 'x'
       },
       title: {
         text: props.title
@@ -50,7 +51,7 @@ export default function ColumnChart(props: HighchartsProps) {
         }
       },
       series: props.series
-    });
+    } as any);
   }, [props.categories, props.series, props.title])
 
 

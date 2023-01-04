@@ -11,7 +11,7 @@ import Fuse from 'fuse.js';
 export function passScoreTest(article: Article, cat: Category, thresholds?: Record<string, number>, mode?: DisplaySources) {
   const score = getScore(article, cat, mode)
   if(score === null) return false
-  return (score || 0) > (thresholds?.[cat.key] || 0)
+  return ((score || 0) > (thresholds?.[cat.key] || 0)) || (mode === "delta" && (score || 0) < (thresholds?.[cat.key] || 0))
 }
 
 export function getScore(article: Article, cat: Category, mode?: DisplaySources): number | null {
@@ -143,7 +143,7 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   const [filterBy, setFilterBy] = useState<Record<string, string[]>>({})
   const [filterByDate, setFilterByDate] = useState<DateRangePickerValue>([null, null])
   const [scoreDisplayMode, setScoreDisplayMode] = useState<'flex' | 'grid' | undefined>('flex')
-  const [scoreDisplaySource, setScoreDisplaySource] = useState<DisplaySources | undefined>()
+  const [scoreDisplaySource, setScoreDisplaySource] = useState<DisplaySources | undefined>('legacy')
   const [articleRowDetails, setArticleRowDetails] = useState<ArticleRowDetails>({
     title: true,
     lang: true,

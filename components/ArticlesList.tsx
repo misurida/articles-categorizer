@@ -314,6 +314,18 @@ const Row = memo(({ data, index, style }: any) => {
       {articleRowDetails.title && (<Anchor href={item.std.url} target="_blank" className={classes.title} title={item.std.title}>{item.std.title}</Anchor>)}
       {articleRowDetails.source_name && item.non_std.source_name && <Tooltip withArrow label="Source name"><Badge sx={{ textTransform: "capitalize" }} color="orange">{item.non_std.source_name}</Badge></Tooltip>}
       {articleRowDetails.publisher_name && item.non_std.publisher_name && <Tooltip withArrow label="Publisher name"><Badge sx={{ textTransform: "capitalize" }} >{item.non_std.publisher_name}</Badge></Tooltip>}
+      {articleRowDetails.sections_length && (
+        <Badge sx={{ textTransform: "none", fontWeight: "normal" }}>
+          <Group>
+            <Tooltip withArrow label="Title length">
+              <span>{item.out.process_sections.title.split(" ").length}</span>
+            </Tooltip>
+            <Tooltip withArrow label="Body length">
+              <span>{item.out.process_sections.body.split(" ").length}</span>
+            </Tooltip>
+          </Group>
+        </Badge>
+      )}
       {articleRowDetails.lang && (
         <>
           {item.std.lang_code ?
@@ -326,18 +338,6 @@ const Row = memo(({ data, index, style }: any) => {
         <Tooltip withArrow label={format(new Date(item.std.publication_datetime), "PPPP pppp")}>
           <Text size="xs" className={classes.date}>{format(new Date(item.std.publication_datetime), "dd.LL.y")}</Text>
         </Tooltip>
-      )}
-      {articleRowDetails.sections_length && (
-        <Badge sx={{ textTransform: "none", fontWeight: "normal" }}>
-          <Group>
-            <Tooltip withArrow label="Title length">
-              <span>{item.out.process_sections.title.split(" ").length}</span>
-            </Tooltip>
-            <Tooltip withArrow label="Body length">
-              <span>{item.out.process_sections.body.split(" ").length}</span>
-            </Tooltip>
-          </Group>
-        </Badge>
       )}
       <ActionIcon onClick={() => onAction("details", item)}>
         <IconViewfinder size={16} />

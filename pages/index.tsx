@@ -86,7 +86,7 @@ const Home: NextPage = () => {
     updateNotification({
       id: "compute-scores",
       loading: false,
-      message: `Scores processed! ${computeElapsedSeconds(start) >= 10 ? `(${computeElapsedTime(start)})` : ""}`,
+      message: `Scores processed! ${computeElapsedTime(start)}`,
       color: "green",
       icon: <IconCheck size={18} />,
       autoClose: computeElapsedSeconds(start) < 10,
@@ -140,7 +140,7 @@ const Home: NextPage = () => {
     updateNotification({
       id: "compute-freq",
       loading: false,
-      message: `Frequencies processed! ${computeElapsedSeconds(start) >= 10 ? `(${computeElapsedTime(start)})` : ""}`,
+      message: `Frequencies processed! ${computeElapsedTime(start)}`,
       color: "green",
       icon: <IconCheck size={18} />,
       autoClose: computeElapsedSeconds(start) < 10,

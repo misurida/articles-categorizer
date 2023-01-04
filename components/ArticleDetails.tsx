@@ -144,10 +144,6 @@ export function CategoryPreview(props: {
     return null
   }
 
-  const checkLem = (str: string) => {
-    console.log(getLemmatized(str))
-  }
-
   return (
     <Stack spacing="xs" sx={{ textAlign: "left" }}>
       <Title order={5}>{props.category?.name}</Title>
@@ -164,21 +160,21 @@ export function CategoryPreview(props: {
           {props.category?.rules?.map((r, i) => (
             <tr key={r.hook}>
               <td><Text size="xs">{i + 1}.</Text></td>
-              <td onClick={() => checkLem(r.hook)}>
+              <td>
                 <Text size="xs">
                   <span
-                    className={cx({ [classes.diff]: r.hook.split("|").length !== getLemmatizedHooks(r.hook.split("|"), props.article?.out?.infer_language).length })}
+                    className={cx({ [classes.diff]: r.hook?.split("|").length !== getLemmatizedHooks(r.hook?.split("|") || [], props.article?.out?.infer_language).length })}
                     title={r.hook}
                   >
-                    {getLemmatizedHooks(r.hook.split("|"), props.article?.out?.infer_language).join(" | ")}
+                    {getLemmatizedHooks(r.hook?.split("|") || [], props.article?.out?.infer_language).join(" | ")}
                   </span>
                 </Text>
               </td>
               <td>
-                <Text size="xs">{countTitleFrequency(r.hook, false) as any || null}</Text>
+                <Text size="xs">{countTitleFrequency(r.hook || "", false) as any || null}</Text>
               </td>
               <td>
-                <Text size="xs">{countBodyFrequency(r.hook) as any || null}</Text>
+                <Text size="xs">{countBodyFrequency(r.hook || "") as any || null}</Text>
               </td>
             </tr>
           ))}
