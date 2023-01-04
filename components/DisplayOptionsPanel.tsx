@@ -62,7 +62,7 @@ export default function DisplayOptionsPanel() {
 
   return (
     <Box className={classes.optionsPanel}>
-      <Text mb="md">Information to be displayed in the rows</Text>
+      <Text mb="md" size="sm">Information to be displayed in the rows:</Text>
       <div className={classes.twoCol}>
         <Switch label="Title" checked={!!articleRowDetails.title} onChange={(event) => handleChange('title', event.currentTarget.checked)} />
         <Switch label="Source name" checked={!!articleRowDetails.source_name} onChange={(event) => handleChange('source_name', event.currentTarget.checked)} />

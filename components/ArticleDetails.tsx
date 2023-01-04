@@ -244,11 +244,11 @@ export function ComputedScoresRow(props: {
   const { classes } = useStyles()
 
   const titleSummary = useMemo(() => {
-    return computeSectionScore(props.article?.out?.process_sections?.title?.split(" ") || [], props.category.rules, props.article?.out?.infer_language)
+    return computeSectionScore(props.article?.out?.process_sections?.title?.split(" ") || [], props.category.rules, 'title', props.article?.out?.infer_language)
   }, [props.article, props.category])
 
   const bodySummary = useMemo(() => {
-    return computeSectionScore(props.article?.out?.process_sections?.body?.split(" ") || [], props.category.rules, props.article?.out?.infer_language)
+    return computeSectionScore(props.article?.out?.process_sections?.body?.split(" ") || [], props.category.rules, 'body', props.article?.out?.infer_language)
   }, [props.article, props.category])
 
   return (

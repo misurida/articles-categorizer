@@ -23,7 +23,7 @@ export default function CategoriesManager(props: {
   const { user } = useAuth()
   const [showStats, setShowStats] = useState(false)
   const [showPopover, setShowPopover] = useState(false)
-  const [quickRules, setQuickRules] = useState(false)
+  const [quickRules, setQuickRules] = useState(true)
 
   const categories = useMemo(() => {
     return dataset?.categories || []
@@ -43,9 +43,14 @@ export default function CategoriesManager(props: {
     setShowEdit(true)
   }
 
-  const handleUpdate = (values: Category) => {
+  const handleUpdate = (values: Category, silent?: boolean) => {
     updateCategory(values, user?.uid)
-    showNotification({ message: "Category updated!", color: "green", icon: <IconCheck size={18} /> })
+    if(!silent) {
+      showNotification({ message: "Category updated!", color: "green", icon: <IconCheck size={18} /> })
+    }
+    else {
+      console.log("Category silently updated", values)
+    }
     setShowEdit(false)
   }
 
@@ -152,6 +157,7 @@ export default function CategoriesManager(props: {
           <CategoryForm
             minimal
             onSubmit={handleUpdate}
+            onSilentSubmit={values => handleUpdate(values, true)}
             category={selectedCategory}
           />
         </Paper>

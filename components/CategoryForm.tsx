@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { TextInput, Group, Button, Stack, ActionIcon, Box, Collapse, Tooltip, MultiSelect, Switch, NumberInput, Paper, Modal, JsonInput, ColorInput, Text, createStyles, Popover, Tabs, Badge } from "@mantine/core";
+import { TextInput, Group, Button, Stack, ActionIcon, Box, Collapse, Tooltip, MultiSelect, Switch, NumberInput, Paper, Modal, JsonInput, ColorInput, Text, createStyles, Popover, Tabs, Badge, Menu } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Category, KeywordRule } from "../utils/types";
 import { stringToKey } from "../utils/helpers";
-import { IconCalculator, IconCheck, IconEdit, IconMinus, IconPlus } from "@tabler/icons";
+import { IconCalculator, IconCheck, IconDotsVertical, IconEdit, IconMinus, IconPlus } from "@tabler/icons";
 import { defaultWeights, getLemmatized } from "../utils/keywords_handler";
 import { useDebouncedValue } from "@mantine/hooks";
 
@@ -160,6 +160,7 @@ export function RuleInput(props: {
   rule: KeywordRule
   onChange: (rule: KeywordRule) => void
   onDelete: () => void
+  onAdd?: () => void
 }) {
 
   const { classes, cx } = useStyles()
@@ -178,10 +179,19 @@ export function RuleInput(props: {
     props.onChange({ ...props.rule, hook: localValue })
   }
 
+  const onCheckClick = (e: React.MouseEvent) => {
+    onSaveHook()
+    if ((e.shiftKey || e.ctrlKey) && props.onAdd) {
+      props.onAdd()
+    }
+  }
   const onHookKeyup = (e: React.KeyboardEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (e.key === "Enter") {
       onSaveHook()
     }
+    return false
   }
 
   const handleChange = (value: KeywordRule, target?: string) => {
@@ -227,15 +237,17 @@ export function RuleInput(props: {
       <Stack spacing={5}>
         <Group spacing={5}>
           <TextInput
+            autoFocus={!props.rule.hook}
             className={cx(classes.hookInput, { [classes.paddedInput]: (!!props.rule.hook && !!localValue) && localValue !== props.rule.hook })}
             sx={{ flex: 1 }}
             value={localValue || ""}
             variant="unstyled"
             onChange={e => setLocalValue(e.target.value)}
             onKeyUp={onHookKeyup}
-            rightSection={(!!props.rule.hook && !!localValue) && localValue !== props.rule.hook && (
+            onBlur={onSaveHook}
+            rightSection={localValue !== props.rule.hook && !!localValue && (
               <Tooltip withArrow label="Save">
-                <ActionIcon size="xs" onClick={onSaveHook}>
+                <ActionIcon size="xs" onClick={onCheckClick}>
                   <IconCheck size={16} />
                 </ActionIcon>
               </Tooltip>
@@ -327,6 +339,7 @@ export function RuleInput(props: {
 export default function CategoryForm(props: {
   category?: Category
   onSubmit: (values: Category) => void
+  onSilentSubmit?: (values: Category) => void
   minimal?: boolean
   onDelete?: (values: Category) => void
 }) {
@@ -354,16 +367,28 @@ export default function CategoryForm(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.category])
 
-  const onRuleChange = (rule: KeywordRule, i: number) => {
-    form.setFieldValue(`rules.${i}`, rule)
+  const submitSilently = (values: Category) => {
+    if (props.onSilentSubmit) {
+      props.onSilentSubmit(values)
+    }
   }
 
   const addRule = () => {
     form.insertListItem("rules", { hook: "" })
   }
 
+  const onRuleChange = (rule: KeywordRule, i: number) => {
+    form.setFieldValue(`rules.${i}`, rule)
+    let v = JSON.parse(JSON.stringify(form.values))
+    v.rules.splice(i, 1, rule)
+    submitSilently(v)
+  }
+
   const onRuleDelete = (i: number) => {
     form.removeListItem("rules", i)
+    let v = JSON.parse(JSON.stringify(form.values))
+    v.rules.splice(i, 1)
+    submitSilently(v)
   }
 
   const onNameChange = (value: string) => {
@@ -409,75 +434,91 @@ export default function CategoryForm(props: {
     }
   }
 
+  const submitForm = () => {
+    props.onSubmit(form.values)
+  }
+
   return (
     <Box>
-      <form onSubmit={form.onSubmit(props.onSubmit)}>
-        <Stack>
-          {!props.minimal && (
-            <>
-              <TextInput
-                withAsterisk
-                label="Name"
-                placeholder="Category name..."
-                value={form.values.name}
-                onChange={e => onNameChange(e.target.value)}
-              />
-              <TextInput
-                withAsterisk
-                label="Key"
-                placeholder="Category key..."
-                {...form.getInputProps('key')}
-              />
-              <TextInput
-                label="Legacy key"
-                placeholder="Category key..."
-                {...form.getInputProps('legacy_key')}
-                value={form.values.legacy_key || ""}
-              />
-              <ColorInput
-                label="Category color"
-                placeholder="A color to help identify the category..."
-                {...form.getInputProps('color')}
-                value={form.values.color || ""}
-              />
-              <Text size="sm">Rules</Text>
-            </>
-          )}
-          <Stack spacing={5}>
-            <Group spacing="xs">
-              <Button onClick={addRule} variant="default" leftIcon={<IconPlus size={14} />} compact>Add new rule</Button>
-              <Button onClick={() => setShowAddMultiple(true)} variant="subtle" color="gray" leftIcon={<IconPlus size={14} />} compact>Add multiple</Button>
-            </Group>
-            <div className={classes.keywordsList}>
-              {(form.values.rules || []).map((r, i) => (
-                <div className={classes.keywordsRow} key={i}>
-                  <Text sx={{ fontSize: "inherit" }}>{i + 1}.</Text>
-                  <RuleInput rule={r} onChange={e => onRuleChange(e, i)} onDelete={() => onRuleDelete(i)}></RuleInput>
-                </div>
-              ))}
-            </div>
-          </Stack>
-          <Group position="right">
-            {props.onDelete && (
-              <Popover>
-                <Popover.Target>
-                  <Button color="red" mr="auto">Delete</Button>
-                </Popover.Target>
-                <Popover.Dropdown>
-                  <Text>You&apos;re about to delete the category:</Text>
-                  <Text weight="bold" my={5}>&laquo; {props.category?.name} &raquo;</Text>
-                  <Text>Are you sure?</Text>
-                  <Group mt="md" position="right">
-                    <Button compact variant="default">Cancel</Button>
-                    <Button compact color="red" onClick={onDelete}>Confirm</Button>
-                  </Group>
-                </Popover.Dropdown>
-              </Popover>
-            )}
-            <Button type="submit">{props.category?.id ? "Save" : "Create"}</Button>
+      <Stack>
+        {!props.minimal && (
+          <>
+            <TextInput
+              withAsterisk
+              label="Name"
+              placeholder="Category name..."
+              value={form.values.name}
+              onChange={e => onNameChange(e.target.value)}
+            />
+            <TextInput
+              withAsterisk
+              label="Key"
+              placeholder="Category key..."
+              {...form.getInputProps('key')}
+            />
+            <TextInput
+              label="Legacy key"
+              placeholder="Category key..."
+              {...form.getInputProps('legacy_key')}
+              value={form.values.legacy_key || ""}
+            />
+            <ColorInput
+              label="Category color"
+              placeholder="A color to help identify the category..."
+              {...form.getInputProps('color')}
+              value={form.values.color || ""}
+            />
+            <Text size="sm">Rules</Text>
+          </>
+        )}
+        <Stack spacing={5}>
+          <Group spacing="xs">
+            <Button onClick={addRule} variant="default" leftIcon={<IconPlus size={14} />} compact>Add new rule</Button>
+            <Menu shadow="md">
+              <Menu.Target>
+                <ActionIcon>
+                  <IconDotsVertical size={16} />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item onClick={() => setShowAddMultiple(true)}>Add multiple</Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
           </Group>
+          <div className={classes.keywordsList}>
+            {(form.values.rules || []).map((r, i) => (
+              <div className={classes.keywordsRow} key={i}>
+                <Text sx={{ fontSize: "inherit" }}>{i + 1}.</Text>
+                <RuleInput
+                  rule={r}
+                  onChange={e => onRuleChange(e, i)}
+                  onDelete={() => onRuleDelete(i)}
+                  onAdd={addRule}
+                />
+              </div>
+            ))}
+          </div>
         </Stack>
-      </form>
+        <Group position="right">
+          {props.onDelete && (
+            <Popover>
+              <Popover.Target>
+                <Button color="red" mr="auto">Delete</Button>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <Text>You&apos;re about to delete the category:</Text>
+                <Text weight="bold" my={5}>&laquo; {props.category?.name} &raquo;</Text>
+                <Text>Are you sure?</Text>
+                <Group mt="md" position="right">
+                  <Button compact variant="default">Cancel</Button>
+                  <Button compact color="red" onClick={onDelete}>Confirm</Button>
+                </Group>
+              </Popover.Dropdown>
+            </Popover>
+          )}
+          <Button type="submit" onClick={submitForm}>{props.category?.id ? "Save" : "Create"}</Button>
+        </Group>
+      </Stack>
       <Modal
         opened={showAddMultiple}
         onClose={() => setShowAddMultiple(false)}

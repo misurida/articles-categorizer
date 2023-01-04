@@ -1,4 +1,4 @@
-import { Article, Category, KeywordRule, WordFrequency } from "./types";
+import { Article, Category, KeywordRule, SectionName, WordFrequency } from "./types";
 
 export const defaultWeights = {
   title: 3,
@@ -196,13 +196,14 @@ export const countFrequencies = (hooks: string[], pool: string[], lang?: string)
  * @param rules The keywords rules.
  * @returns score metrics.
  */
-export const computeSectionScore = (arr: string[], rules: KeywordRule[], lang?: string): Record<string, number> => {
+export const computeSectionScore = (arr: string[], rules: KeywordRule[], sec: SectionName, lang?: string): Record<string, number> => {
   const summary = getSectionSummary(arr)
-  const l = rules.length
+  const rulesList = rules.filter(r => !r[sec]?.boost || (r[sec]?.boost || 0) >= 0)
+  const l = rulesList.length
   let f_unique = 0
   let f_total = 0
   let weight_total = 0
-  for (const rule of rules) {
+  for (const rule of rulesList) {
     const hooks = rule.hook?.split("|") || []
     // # alternative: counting all hook pieces and taking the max.
     const count = countFrequencies(hooks, arr, lang)
@@ -237,16 +238,16 @@ export const computeScore = (article: Article, category: Category) => {
 
   let score = 0
   const rules = category.rules
-  let weight_total = 4
+  let weight_total = (4)
 
   if (rules) {
-    const titleScore = computeSectionScore(article.out.process_sections.title.split(" "), rules, article.out.infer_language).f_agg
-    const bodyScore = computeSectionScore(article.out.process_sections.body.split(" "), rules, article.out.infer_language).f_agg
-    if(titleScore > 0) {
-      score +=  3 * (titleScore + 1)
+    const titleScore = computeSectionScore(article.out.process_sections.title.split(" "), rules, 'title', article.out.infer_language).f_agg
+    const bodyScore = computeSectionScore(article.out.process_sections.body.split(" "), rules, 'body', article.out.infer_language).f_agg
+    if (titleScore > 0) {
+      score += (3) * (titleScore + 1)
     }
-    if(bodyScore > 0) {
-      score += 1 * (bodyScore + 1)
+    if (bodyScore > 0) {
+      score += (1) * (bodyScore + 1)
     }
     score = score / weight_total * 10
   }

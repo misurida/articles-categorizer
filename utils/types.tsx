@@ -61,6 +61,7 @@ export interface KeywordRule {
   
   title?: KeywordRule
   body?: KeywordRule
+  snippet?: KeywordRule
 }
 
 export interface Category {
