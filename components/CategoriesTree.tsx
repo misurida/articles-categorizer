@@ -269,7 +269,9 @@ export function CustomNode(props: {
             </ActionIcon>
           </Tooltip>
         )}
-        {(!!categoryRowDetails.count && !!props.count) && (<Badge variant="outline">{props.count}</Badge>)}
+        {(!!categoryRowDetails.count && !!props.count) && (
+          <Badge variant="outline">{props.count}</Badge>
+        )}
       </div>
     </div>
   );
@@ -300,7 +302,7 @@ export default function CategoriesTree(props: {
   }
 
   const maxDepth = 1
-  const { filteredArticles, categories, thresholds, scoreDisplaySource } = useDatabase()
+  const { filteredArticles, categories, scoreDisplaySource, scoresThresholds } = useDatabase()
   const { classes } = useStyles()
   const [treeData, setTreeData] = useState<NodeModel<Category>[]>(buildTreeItems(props.data));
   const [editTree, setEditTree] = useState(false)
@@ -334,7 +336,7 @@ export default function CategoriesTree(props: {
     if (!filteredArticles || !filteredArticles.length || !cat) {
       return 0
     }
-    return filteredArticles.filter(a => passScoreTest(a, cat, thresholds, scoreDisplaySource)).length
+    return filteredArticles.filter(a => passScoreTest(a, cat, scoresThresholds[scoreDisplaySource || "auto"], scoreDisplaySource)).length
   }
 
   const ref = useRef<TreeMethods>(null);

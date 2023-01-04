@@ -41,11 +41,13 @@ export interface CategoryRowDetails {
 }
 
 export interface ScoresThresholds {
-  auto: Record<string, number>
-  legacy: Record<string, number>
-  computed: Record<string, number>
-  delta: Record<string, number>
+  auto?: Record<string, number>
+  legacy?: Record<string, number>
+  computed?: Record<string, number>
+  delta?: Record<string, number>
 }
+
+export type ScoreThresholds = Record<string, number>
 
 export type DisplaySources = "legacy" | "computed" | "delta"
 
@@ -72,6 +74,7 @@ export interface Category {
   color?: string
   rules: KeywordRule[]
   legacy_key?: string
+  sections_weights?: Partial<Record<SectionName, number>>
 }
 
 export interface Dataset {

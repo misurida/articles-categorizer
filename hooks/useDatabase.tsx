@@ -94,7 +94,6 @@ interface DatabaseContext {
   setDisplayedCategories: Dispatch<SetStateAction<string[]>>
   scoresThresholds: ScoresThresholds
   setScoresThresholds: Dispatch<SetStateAction<ScoresThresholds>>
-  thresholds: Record<string, number>
   categoryRowDetails: CategoryRowDetails
   setCategoryRowDetails: Dispatch<SetStateAction<CategoryRowDetails>>
   wordsFrequencies: WordFrequency[]
@@ -143,7 +142,7 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   const [filterBy, setFilterBy] = useState<Record<string, string[]>>({})
   const [filterByDate, setFilterByDate] = useState<DateRangePickerValue>([null, null])
   const [scoreDisplayMode, setScoreDisplayMode] = useState<'flex' | 'grid' | undefined>('flex')
-  const [scoreDisplaySource, setScoreDisplaySource] = useState<DisplaySources | undefined>('legacy')
+  const [scoreDisplaySource, setScoreDisplaySource] = useState<DisplaySources | undefined>()
   const [articleRowDetails, setArticleRowDetails] = useState<ArticleRowDetails>({
     title: true,
     lang: true,
@@ -168,13 +167,6 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   const [freqSortAsc, setFreqSortAsc] = useState(false)
   const [freqThreshold, setFreqThreshold] = useState(0)
   const [freqThresholdGT, setFreqThresholdGT] = useState(true)
-
-  const thresholds = useMemo(() => {
-    if (!scoreDisplaySource) {
-      return scoresThresholds.auto
-    }
-    return scoresThresholds[scoreDisplaySource]
-  }, [])
 
 
   // initializing the web workers
@@ -219,7 +211,7 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   }
 
   const computeArticles = async () => {
-    articlesComputationsWorker?.postMessage({ articles: JSON.parse(JSON.stringify(articles)), categories: dataset?.categories || [] })
+    articlesComputationsWorker?.postMessage({ articles: JSON.parse(JSON.stringify(articles)), categories: JSON.parse(JSON.stringify(categories)) })
     return new Promise<void>((resolve, reject) => {
       articlesComputationsWorker?.addEventListener('message', (event) => {
         setArticles(event.data)
@@ -340,8 +332,8 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     // sort by score
     if (sortByScore) {
       data.sort((a, b) => {
-        const A = getScore(a, sortByScore) || 0
-        const B = getScore(b, sortByScore) || 0
+        const A = getScore(a, sortByScore, scoreDisplaySource) || 0
+        const B = getScore(b, sortByScore, scoreDisplaySource) || 0
         if (A > B) return sortAsc ? 1 : -1
         if (A < B) return sortAsc ? -1 : 1
         return 0
@@ -402,10 +394,10 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   }
 
   const setCategories = (categories: Category[], uid?: string) => {
-    setCategoriesValues(categories)
     if (uid && dataset) {
       updateData(`datasets/${uid}/${dataset.id}`, { ...dataset, categories })
     }
+    setCategoriesValues(categories)
   }
 
   const toggleCategory = (item: Category) => {
@@ -417,9 +409,9 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     }
   }
 
-  const setDataset = (dataset: Dataset) => {
+  const setDataset = (dataset?: Dataset) => {
     setLocalDataset(dataset)
-    setCategoriesValues(dataset.categories || [])
+    setCategoriesValues(dataset?.categories || [])
   }
 
   const deleteDataset = (id?: string, uid?: string) => {
@@ -478,7 +470,7 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
 
   useEffect(() => {
     if (auth.currentUser?.uid && dataset) {
-      setLocalDataset(datasets.find(d => d.id === dataset.id))
+      setDataset(datasets.find(d => d.id === dataset.id))
     }
   }, [auth.currentUser, datasets])
 
@@ -579,7 +571,6 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     setDisplayedCategories,
     scoresThresholds,
     setScoresThresholds,
-    thresholds,
     categoryRowDetails,
     setCategoryRowDetails,
     wordsFrequencies,

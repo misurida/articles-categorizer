@@ -3,12 +3,12 @@ import { memo, useEffect, useMemo, useState } from 'react';
 import memoize from 'memoize-one';
 import { FixedSizeList as List, areEqual } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { ActionIcon, Badge, Group, Stack, TextInput, Tooltip, createStyles, Text, Paper, Button, Popover, MediaQuery, Menu, Indicator, Anchor, Slider, CloseButton, ColorSwatch, useMantineTheme, HoverCard } from '@mantine/core';
+import { ActionIcon, Badge, Group, Stack, TextInput, Tooltip, createStyles, Text, Paper, Button, Popover, MediaQuery, Menu, Indicator, Anchor, Slider, CloseButton, ColorSwatch, useMantineTheme, HoverCard, ScrollArea } from '@mantine/core';
 import { format } from 'date-fns';
-import { Article, Category, DisplaySources } from '../utils/types';
+import { Article, Category, DisplaySources, ScoreThresholds, ScoresThresholds } from '../utils/types';
 import { IconChevronDown, IconSearch, IconSortAscending, IconSortDescending, IconViewfinder, IconX, IconZoomCancel } from '@tabler/icons';
 import { getScore, passScoreTest, useDatabase } from '../hooks/useDatabase';
-import { getContrastColor, maxDecimal } from '../utils/helpers';
+import { capitalize, getContrastColor, maxDecimal } from '../utils/helpers';
 import FiltersPanel from './FilterPanel';
 import { useDebouncedValue } from '@mantine/hooks';
 import DisplayOptionsPanel from './DisplayOptionsPanel';
@@ -125,6 +125,9 @@ const useStyles = createStyles((theme) => ({
   },
   noScore: {
     opacity: 0.25
+  },
+  multiple: {
+    position: "relative"
   }
 }));
 
@@ -132,16 +135,18 @@ const useStyles = createStyles((theme) => ({
 
 export function ScoreFilter(props: {
   category: Category
+  value?: number
+  onUpdateScore: (value: number) => void
 }) {
 
   const { classes } = useStyles()
-  const { thresholds, toggleCategory, setScoresThresholds, scoresThresholds, scoreDisplaySource } = useDatabase()
+  const { toggleCategory, setScoresThresholds } = useDatabase()
   const [localValue, setLocalValue] = useState(0)
   const { sortByScore, setSortByScore, sortAsc, setSortAsc } = useDatabase()
 
   useEffect(() => {
-    setLocalValue(scoresThresholds[scoreDisplaySource || "auto"]?.[props.category.key] || 0)
-  }, [scoresThresholds, props.category, scoreDisplaySource])
+    setLocalValue(props.value || 0)
+  }, [props.value])
 
   const handlesSort = (asc: boolean) => {
     // remove the filter
@@ -156,17 +161,6 @@ export function ScoreFilter(props: {
     }
   }
 
-  const updateScore = useCallback(
-    (val: number) => {
-      let t = JSON.parse(JSON.stringify(thresholds))
-      t[props.category.key] = val
-      setScoresThresholds({ ...scoresThresholds, [scoreDisplaySource || "auto"]: t })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [scoresThresholds, thresholds, scoreDisplaySource, props.category.key],
-  )
-
-
   const unselectCategory = () => {
     toggleCategory(props.category)
   }
@@ -176,7 +170,7 @@ export function ScoreFilter(props: {
       <Text className={classes.filterName}>{props.category.name}</Text>
       <div className={classes.filterContent}>
         <Slider
-          sx={{ flex: 1 }}
+          sx={{ flex: 1, minWidth: 100 }}
           min={0}
           max={10}
           label={e => e.toFixed(1)}
@@ -191,7 +185,7 @@ export function ScoreFilter(props: {
           }) : undefined}
           value={localValue}
           onChange={setLocalValue}
-          onChangeEnd={updateScore}
+          onChangeEnd={props.onUpdateScore}
         />
         <Text>{localValue.toFixed(1)}</Text>
         <Tooltip withArrow label="Sort ascending">
@@ -394,9 +388,11 @@ export default function MantineList<T>(props: {
     filterBy,
     filterByDate,
     scoreDisplaySource,
+    scoresThresholds,
+    setScoresThresholds,
     scoreDisplayMode,
     articleRowDetails,
-    displayedCategories
+    displayedCategories,
   } = useDatabase()
 
   const filteredCategories = useMemo(() => {
@@ -433,6 +429,13 @@ export default function MantineList<T>(props: {
   const onSortByScore = (c: Category, asc: boolean) => {
     setSortByScore(c)
     setSortAsc(asc)
+  }
+
+  const onUpdateScore = (val: number, key: string, p: keyof ScoresThresholds) => {
+    let t = JSON.parse(JSON.stringify(scoresThresholds[p]))
+    t = { ...t, [key]: val }
+    const tPool = { ...scoresThresholds, [p]: t }
+    setScoresThresholds(tPool)
   }
 
   return (
@@ -530,7 +533,7 @@ export default function MantineList<T>(props: {
             <Popover.Target>
               <Indicator offset={2} disabled={!displayedCategories.length}>
                 <Button variant='default' rightIcon={<IconChevronDown size={16} />}>
-                  <Text weight="normal">Display</Text>
+                  <Text weight="normal">{capitalize(scoreDisplaySource || "display")}</Text>
                 </Button>
               </Indicator>
             </Popover.Target>
@@ -541,17 +544,21 @@ export default function MantineList<T>(props: {
         </Group>
       </div>
       {selectedCategories.length > 0 && (
-        <Stack spacing={5}>
-          <Text size="xs">Restrict the articles based on scores greater than:</Text>
-          <div className={classes.scoreFilterWrapper}>
-            {categories.filter(c => selectedCategories.includes(c.id)).map(c => (
-              <ScoreFilter
-                category={c}
-                key={c.id}
-              />
-            ))}
-          </div>
-        </Stack>
+        <ScrollArea style={{ maxHeight: 180 }}>
+          <Stack spacing={5}>
+            <Text size="xs">Restrict the articles based on scores greater than:</Text>
+            <div className={classes.scoreFilterWrapper}>
+              {categories.filter(c => selectedCategories.includes(c.id)).map(c => (
+                <ScoreFilter
+                  key={c.id}
+                  category={c}
+                  value={scoresThresholds?.[scoreDisplaySource || "auto"]?.[c.key]}
+                  onUpdateScore={v => onUpdateScore(v, c.key, scoreDisplaySource || "auto")}
+                />
+              ))}
+            </div>
+          </Stack>
+        </ScrollArea>
       )}
       <Paper sx={{ flex: 1 }} withBorder>
         <AutoSizer>

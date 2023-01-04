@@ -10,6 +10,7 @@ import CategoryForm from "./CategoryForm";
 import { showNotification } from "@mantine/notifications";
 import { TabsValue } from "@mantine/core/lib/Tabs";
 import CategoriesStatistics from "./CategoriesStatistics";
+import { buildColor } from "../utils/helpers";
 
 
 export default function CategoriesManager(props: {
@@ -89,6 +90,11 @@ export default function CategoriesManager(props: {
     setShowPopover(false)
   }
 
+  const randomizeColors = () => {
+    updateCategories(categories.map(c => ({...c, color: buildColor()})), user?.uid)
+    showNotification({ message: "Categories updated!", color: "green", icon: <IconCheck size={18} /> })
+  }
+
   return (
     <Box sx={{ display: "inline-block", margin: "0 auto", padding: 0 }}>
       <Title order={2} mb="md" sx={{ textAlign: "left", margin: "5px 0" }} size="xl">Categories</Title>
@@ -139,6 +145,7 @@ export default function CategoriesManager(props: {
                   <Switch label="Edit button" checked={!!categoryRowDetails.edit_button} onChange={(event) => handleChangeDisplay('edit_button', event.currentTarget.checked)} />
                   <Switch label="Count" checked={!!categoryRowDetails.count} onChange={(event) => handleChangeDisplay('count', event.currentTarget.checked)} />
                 </Stack>
+                <Button mt="xs" fullWidth variant="default" onClick={randomizeColors}>Randomize colors</Button>
               </Popover.Dropdown>
             </Popover>
           </>

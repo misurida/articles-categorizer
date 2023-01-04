@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { TextInput, Group, Button, Stack, ActionIcon, Box, Collapse, Tooltip, MultiSelect, Switch, NumberInput, Paper, Modal, JsonInput, ColorInput, Text, createStyles, Popover, Tabs, Badge, Menu } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { Category, KeywordRule } from "../utils/types";
+import { Category, KeywordRule, SectionName } from "../utils/types";
 import { stringToKey } from "../utils/helpers";
 import { IconCalculator, IconCheck, IconDotsVertical, IconEdit, IconMinus, IconPlus } from "@tabler/icons";
 import { defaultWeights, getLemmatized } from "../utils/keywords_handler";
@@ -132,25 +132,29 @@ export function RuleInputForm(props: {
         onChange={e => onArrayUpdate('must_not_contain', e)}
         disabled={props.showInactive && localValue?.inactive}
       />
-      <NumberInput
-        aria-label="Weight (value)"
-        min={0}
-        type="number"
-        value={localValue?.weight || undefined}
-        placeholder={props.weightPlaceholder || "Weight..."}
-        onChange={e => onNumberUpdate('weight', e)}
-        precision={2}
-        step={0.1}
-        disabled={props.showInactive && localValue?.inactive}
-      />
-      <NumberInput
-        aria-label="Boost (value)"
-        value={localValue?.boost || undefined}
-        placeholder="Boost..."
-        onChange={e => onNumberUpdate('boost', e)}
-        precision={1}
-        disabled={props.showInactive && localValue?.inactive}
-      />
+      {!props.showInactive && (
+        <NumberInput
+          aria-label="Weight (value)"
+          min={0}
+          type="number"
+          value={localValue?.weight || undefined}
+          placeholder={props.weightPlaceholder || "Weight..."}
+          onChange={e => onNumberUpdate('weight', e)}
+          precision={2}
+          step={0.1}
+          disabled={props.showInactive && localValue?.inactive}
+        />
+      )}
+      {props.showInactive && (
+        <NumberInput
+          aria-label="Boost (value)"
+          value={localValue?.boost || undefined}
+          placeholder="Boost..."
+          onChange={e => onNumberUpdate('boost', e)}
+          precision={1}
+          disabled={props.showInactive && localValue?.inactive}
+        />
+      )}
     </Stack>
   )
 }
@@ -220,10 +224,9 @@ export function RuleInput(props: {
   }
 
   const addLemmatized = () => {
-    const t = props.rule.hook?.split("|") || []
+    const t = localValue?.split("|") || []
     const tab = [...t, ...lemmatizedValues]
-    setLocalValue(tab.join("|"))
-    onSaveHook()
+    props.onChange({ ...props.rule, hook: tab.join("|") })
     setShowLemmatize(false)
   }
 
@@ -296,11 +299,9 @@ export function RuleInput(props: {
                       ) : (
                         <Text>No lemmatize...</Text>
                       )}
-
                     </Popover.Dropdown>
                   </Popover>
                 </Tabs.List>
-
                 <Tabs.Panel value="all" mt={5}>
                   <RuleInputForm
                     rule={props.rule}
@@ -438,6 +439,20 @@ export default function CategoryForm(props: {
     props.onSubmit(form.values)
   }
 
+  const onSectionsWeightChange = (target: SectionName, v?: number) => {
+    let values: Category = JSON.parse(JSON.stringify(form.values))
+    if (!values.sections_weights) {
+      values.sections_weights = {}
+    }
+    if (v === undefined && values.sections_weights[target]) {
+      delete values.sections_weights[target]
+    }
+    else {
+      values.sections_weights[target] = v
+    }
+    form.setValues(values)
+  }
+
   return (
     <Box>
       <Stack>
@@ -468,7 +483,26 @@ export default function CategoryForm(props: {
               {...form.getInputProps('color')}
               value={form.values.color || ""}
             />
-            <Text size="sm">Rules</Text>
+            <Stack spacing={0}>
+              <Text size="sm" italic mb="xs">Section weights</Text>
+              <Group>
+                <NumberInput
+                  label="Title weight"
+                  min={1}
+                  placeholder={`Default value: ${defaultWeights.title}`}
+                  value={form.values?.sections_weights?.title}
+                  onChange={v => onSectionsWeightChange('title', v)}
+                />
+                <NumberInput
+                  label="Body weight"
+                  min={1}
+                  placeholder={`Default value: ${defaultWeights.body}`}
+                  value={form.values?.sections_weights?.body}
+                  onChange={v => onSectionsWeightChange('body', v)}
+                />
+              </Group>
+            </Stack>
+            <Text size="sm" italic>Rules</Text>
           </>
         )}
         <Stack spacing={5}>

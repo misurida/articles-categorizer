@@ -1,5 +1,5 @@
 import { InternationalizationStaticProps } from '../types/shell'
-import { Stack, Modal, createStyles, Group, Button, Tabs } from '@mantine/core'
+import { Stack, Modal, createStyles, Group, Button, Tabs, Collapse } from '@mantine/core'
 import { NextPage } from 'next'
 import { useState } from 'react'
 import { Article } from '../utils/types'
@@ -46,10 +46,11 @@ const useStyles = createStyles((theme) => ({
 
 const Home: NextPage = () => {
 
-  const { dataset, articles, selectedCategories, computeArticles, computeWordsFrequencies, filterBy, setScoreDisplaySource, scoresThresholds, scoreDisplaySource } = useDatabase()
+  const { dataset, articles, selectedCategories, computeArticles, computeWordsFrequencies, setScoreDisplaySource, scoreDisplaySource } = useDatabase()
   const { user } = useAuth()
   const { classes } = useStyles()
   const [localArticle, setLocalArticle] = useState<Article | undefined>()
+  const [showArticle, setShowArticle] = useState(false)
   const [activeTab, setActiveTab] = useState<string | null>('articles');
   const [frequencyLoad, setFrequencyLoad] = useState(false)
   const [articlesLoad, setArticlesLoad] = useState(false)
@@ -57,6 +58,7 @@ const Home: NextPage = () => {
   const onArticleAction = (action: string, item: Article) => {
     if (action === "details") {
       setLocalArticle(item)
+      setShowArticle(true)
       console.log(item)
     }
   }
@@ -91,7 +93,9 @@ const Home: NextPage = () => {
       icon: <IconCheck size={18} />,
       autoClose: computeElapsedSeconds(start) < 10,
     })
-    setScoreDisplaySource("computed")
+    if (scoreDisplaySource === undefined) {
+      setScoreDisplaySource("computed")
+    }
   }
 
   const computeElapsedTime = (base?: Date) => {
@@ -147,6 +151,13 @@ const Home: NextPage = () => {
     })
   }
 
+  const cancelShowArticle = () => {
+    setShowArticle(false)
+    setTimeout(() => {
+      setLocalArticle(undefined)
+    }, 200)
+  }
+
   return (
     <Stack sx={{ height: "100%" }}>
       {user?.uid && (
@@ -160,7 +171,6 @@ const Home: NextPage = () => {
           )}
           {articles.length > 0 && (
             <div className={classes.articlesWrapper}>
-
               <Tabs value={activeTab} onTabChange={setActiveTab} className={classes.tabsWrapper}>
                 <Tabs.List sx={{ flexWrap: "wrap", maxWidth: "90vw" }}>
                   <Tabs.Tab value="articles">Articles</Tabs.Tab>
@@ -174,30 +184,29 @@ const Home: NextPage = () => {
                     )}
                   </Group>
                 </Tabs.List>
-
                 <Tabs.Panel value="articles" pt="xs" className={classes.tabFlex}>
                   <ArticlesList
                     onAction={onArticleAction}
                     items={articles}
                   />
                 </Tabs.Panel>
-
                 <Tabs.Panel value="words" pt="xs" className={classes.tabFlex}>
                   <KeywordsList />
                 </Tabs.Panel>
-
               </Tabs>
             </div>
           )}
         </div>
       )}
       <Modal
-        opened={!!localArticle?.id}
-        onClose={() => setLocalArticle(undefined)}
+        opened={showArticle}
+        onClose={cancelShowArticle}
         title="Article details"
         size="auto"
       >
-        <ArticleDetails article={localArticle} />
+        <Collapse in={showArticle}>
+          <ArticleDetails article={localArticle} />
+        </Collapse>
       </Modal>
     </Stack>
   )

@@ -238,16 +238,18 @@ export const computeScore = (article: Article, category: Category) => {
 
   let score = 0
   const rules = category.rules
-  let weight_total = (4)
+  const titleWeight = category.sections_weights?.title || defaultWeights.title || 3
+  const bodyWeight = category.sections_weights?.body || defaultWeights.body || 1
+  let weight_total = titleWeight + bodyWeight
 
   if (rules) {
     const titleScore = computeSectionScore(article.out.process_sections.title.split(" "), rules, 'title', article.out.infer_language).f_agg
     const bodyScore = computeSectionScore(article.out.process_sections.body.split(" "), rules, 'body', article.out.infer_language).f_agg
     if (titleScore > 0) {
-      score += (3) * (titleScore + 1)
+      score += titleWeight * (titleScore + 1)
     }
     if (bodyScore > 0) {
-      score += (1) * (bodyScore + 1)
+      score += bodyWeight * (bodyScore + 1)
     }
     score = score / weight_total * 10
   }
