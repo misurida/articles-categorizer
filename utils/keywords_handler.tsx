@@ -198,29 +198,55 @@ export const countFrequencies = (hooks: string[], pool: string[], lang?: string)
  */
 export const computeSectionScore = (arr: string[], rules: KeywordRule[], sec: SectionName, lang?: string): Record<string, number> => {
   const summary = getSectionSummary(arr)
-  const rulesList = rules.filter(r => !r[sec]?.boost || (r[sec]?.boost || 0) >= 0)
-  const l = rulesList.length
+  
+  // First filter out inactive rules for this section, not sure exactly how to do it ...
+  const activeRules = rules.filter(r => !r[sec]?.inactive) 
+  
+  // Now filter to active rules with a non-negative boost weight
+  const nonNegativeRules = activeRules.filter(r => (!r[sec]?.boost || (r[sec]?.boost || 0) >= 0)) 
+  
+  // 1) Relative frequency scoring
+  // Here we loop over all active rules which do NOT have a negative boost weight, because these
+  // words are assumed irrelevant and should not contribute to the relative frequency score.
+  const l = nonNegativeRules.length
   let f_unique = 0
   let f_total = 0
   let weight_total = 0
-  for (const rule of rulesList) {
+  for (const rule of nonNegativeRules) {
     const hooks = rule.hook?.split("|") || []
     // # alternative: counting all hook pieces and taking the max.
     const count = countFrequencies(hooks, arr, lang)
     const z = min(1, count / summary.avgFreq)
-    f_total += z * (rule.weight || 1)
-    weight_total += (rule.weight || 1)
     if (count > 0) {
+      // Only need to increment the values if the count > 0
       f_unique++
+      f_total += z * (rule.weight || 1)
+      weight_total += (rule.weight || 1)
     }
   }
   const f_agg = ((f_unique / l) + (f_total / weight_total)) / 2
+
+  // 2) Absolute boost scoring
+  // Here we loop over all active rules regardless of the boost weight to get the total boost score.
+  let boost_total = 0
+  for (const rule of activeRules) {
+    const hooks = rule.hook?.split("|") || []
+    const count = countFrequencies(hooks, arr, lang)
+    if (count > 0) {
+      boost_total += rule.boost
+    }
+  }
+
+  // NOTE: The double loop could be merged into one loop if you are careful about treating
+  // the negative boosts separately. Again, rules with a negative boost should not affect
+  // the f_agg score in any way.
 
   return {
     l,
     f_unique,
     f_total,
     f_agg,
+    boost_total,
     avgFreq: summary.avgFreq,
     maxFreq: summary.maxFreq,
     n: summary.mapSize
@@ -243,13 +269,17 @@ export const computeScore = (article: Article, category: Category) => {
   let weight_total = titleWeight + bodyWeight
 
   if (rules) {
-    const titleScore = computeSectionScore(article.out.process_sections.title.split(" "), rules, 'title', article.out.infer_language).f_agg
-    const bodyScore = computeSectionScore(article.out.process_sections.body.split(" "), rules, 'body', article.out.infer_language).f_agg
+    titleResults = computeSectionScore(article.out.process_sections.title.split(" "), rules, 'title', article.out.infer_language)
+    bodyResults = computeSectionScore(article.out.process_sections.body.split(" "), rules, 'body', article.out.infer_language)
+
+    const titleScore = titleResults.f_agg
+    const bodyScore = bodyResults.f_agg
+    
     if (titleScore > 0) {
-      score += titleWeight * (titleScore + 1)
+      score += titleWeight * (titleScore + 1) + titleResults.boost_total
     }
     if (bodyScore > 0) {
-      score += bodyWeight * (bodyScore + 1)
+      score += bodyWeight * (bodyScore + 1) + bodyResults.boost_total
     }
     score = score / weight_total * 10
   }
