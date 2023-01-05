@@ -233,7 +233,7 @@ export const computeSectionScore = (arr: string[], rules: KeywordRule[], sec: Se
     const hooks = rule.hook?.split("|") || []
     const count = countFrequencies(hooks, arr, lang)
     if (count > 0) {
-      boost_total += rule.boost
+      boost_total += rule?.boost || 0
     }
   }
 
@@ -269,8 +269,8 @@ export const computeScore = (article: Article, category: Category) => {
   let weight_total = titleWeight + bodyWeight
 
   if (rules) {
-    titleResults = computeSectionScore(article.out.process_sections.title.split(" "), rules, 'title', article.out.infer_language)
-    bodyResults = computeSectionScore(article.out.process_sections.body.split(" "), rules, 'body', article.out.infer_language)
+    const titleResults = computeSectionScore(article.out.process_sections.title.split(" "), rules, 'title', article.out.infer_language)
+    const bodyResults = computeSectionScore(article.out.process_sections.body.split(" "), rules, 'body', article.out.infer_language)
 
     const titleScore = titleResults.f_agg
     const bodyScore = bodyResults.f_agg
