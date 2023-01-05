@@ -199,40 +199,36 @@ export const countFrequencies = (hooks: string[], pool: string[], lang?: string)
 export const computeSectionScore = (arr: string[], rules: KeywordRule[], sec: SectionName, lang?: string): Record<string, number> => {
   const summary = getSectionSummary(arr)
 
-  // First filter out inactive rules for this section, not sure exactly how to do it ...
-  const activeRules = rules.filter(r => !r[sec]?.inactive)
-
-  // Now filter to active rules with a non-negative boost weight
-  const nonNegativeRules = activeRules.filter(r => (!r[sec]?.boost || (r[sec]?.boost || 0) >= 0))
-
-
-  const l = nonNegativeRules.length
+  const activeRules = rules.filter(r => !r[sec]?.inactive) // only active rules
+  let l = 0 // total of non-negative boost rules
   let f_unique = 0
   let f_total = 0
   let weight_total = 0
-
-
   let boost_total = 0
 
-  for (const rule of nonNegativeRules) {
+  for (const rule of activeRules) {
     const hooks = rule.hook?.split("|") || []
-    
+    const count = countFrequencies(hooks, arr, lang)
+
     // 1) Relative frequency scoring
     // Here we loop over all active rules which do NOT have a negative boost weight, because these
     // words are assumed irrelevant and should not contribute to the relative frequency score.
     // /!\ possible alternative: counting all hook pieces and taking the max.
-    const count = countFrequencies(hooks, arr, lang)
-    const z = min(1, count / summary.avgFreq)
-    if (count > 0) {
-      // Only need to increment the values if the count > 0
-      f_unique++
-      f_total += z * (rule.weight || 1)
-      weight_total += (rule.weight || 1)
+    if (!rule[sec]?.boost || (rule[sec]?.boost || 0) >= 0) {
+      // here: only active rules with a non-negative boost weight
+      l++
+      const z = min(1, count / summary.avgFreq)
+      if (count > 0) {
+        // Only need to increment the values if the count > 0
+        f_unique++
+        f_total += z * (rule.weight || 1)
+        weight_total += (rule.weight || 1)
+      }
     }
 
     // 2) Absolute boost scoring
     // Here we loop over all active rules regardless of the boost weight to get the total boost score.
-    if (!rule[sec]?.boost || (rule[sec]?.boost || 0) >= 0 && count > 0) {
+    if (count > 0) {
       boost_total += rule?.boost || 0
     }
   }
