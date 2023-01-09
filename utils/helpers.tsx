@@ -297,18 +297,36 @@ export const buildColor = () => {
 }
 
 /**
+ * @see https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+ * @param hex 
+ * @returns 
+ */
+export function hexToRgb(hex: string, asString?: boolean) {
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const r = result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+  return asString && r ? `${r.r},${r.g},${r.b}` : r
+}
+
+/**
  * Return a text contrasted color ('black' or 'white') based on a provided background color.
  * 
  * @param color The background color the get the font color for.
  * @returns 'black' or 'white'
  */
-export const getContrastColor = (color: string) => {
+export const getContrastColor = (color?: string) => {
+  if(!color) {
+    return "currentColor"
+  }
   const rgb = color.match(/[A-Fa-f0-9]{1,2}/g)?.map(v => parseInt(v, 16)) || []
   if (rgb.length === 3) {
     const brightness = Math.round(((rgb[0] * 299) +
       (rgb[1] * 587) +
       (rgb[2] * 114)) / 1000);
-    return (brightness > 125) ? 'black' : 'white'
+    return (brightness > 140) ? 'black' : 'white'
   }
   return 'black'
 }

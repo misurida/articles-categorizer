@@ -3,14 +3,14 @@ import { ref, onValue, set, update, push } from "firebase/database";
 import { getObjectValue, objectToArray, uuidv4 } from '../utils/helpers';
 import { DefaultPageProps } from '../types/shell'
 import { auth, db } from '../utils/firebase'
-import { Article, ArticleRowDetails, Category, CategoryRowDetails, Dataset, DisplaySources, ScoresThresholds, WordFrequency } from '../utils/types';
+import { Article, ArticleRowDetails, Category, CategoryRowDetails, Dataset, DbImportMode, DisplaySources, ScoresThresholds, TagsParameters, WordFrequency } from '../utils/types';
 import { DateRangePickerValue } from '@mantine/dates';
 import { isAfter, isBefore } from 'date-fns';
 import Fuse from 'fuse.js';
 
 export function passScoreTest(article: Article, cat: Category, thresholds?: Record<string, number>, mode?: DisplaySources) {
   const score = getScore(article, cat, mode)
-  if(score === null) return false
+  if (score === null) return false
   return ((score || 0) > (thresholds?.[cat.key] || 0)) || (mode === "delta" && (score || 0) < (thresholds?.[cat.key] || 0))
 }
 
@@ -19,7 +19,7 @@ export function getScore(article: Article, cat: Category, mode?: DisplaySources)
   if (mode === "delta") {
     const legacyScore = getObjectValue(article, `out.classify_categories.relevance_scores.${cat.legacy_key}`) || 0
     const computedScore = getObjectValue(article, `classification.${cat.key}`) || 0
-    if(!legacyScore || !computedScore) {
+    if (!legacyScore || !computedScore) {
       return null
     }
     const delta = computedScore - legacyScore
@@ -58,7 +58,7 @@ interface DatabaseContext {
   updateCategory: (item: Category, uid?: string) => void
   deleteCategory: (item?: Category, uid?: string) => void
 
-  fetchArticles: (offset?: number, limit?: number) => void
+  fetchArticles: (dbImportMode: DbImportMode, limit?: number, offset?: number) => void
   loading: boolean
   filteredArticles: Article[]
   articles: Article[]
@@ -108,6 +108,14 @@ interface DatabaseContext {
   setFreqThreshold: Dispatch<SetStateAction<number>>
   freqThresholdGT: boolean
   setFreqThresholdGT: Dispatch<SetStateAction<boolean>>
+  selectedArticles: string[]
+  setSelectedArticles: Dispatch<SetStateAction<string[]>>
+  selectedArticle?: Article
+  setSelectedArticle: Dispatch<SetStateAction<Article | undefined>>
+  updateArticle: (item: Article) => void
+  updateArticles: (items: Article[]) => void
+  tagsParameters: TagsParameters
+  setTagsParameters: Dispatch<SetStateAction<TagsParameters>>
 }
 
 /**
@@ -146,7 +154,8 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   const [articleRowDetails, setArticleRowDetails] = useState<ArticleRowDetails>({
     title: true,
     lang: true,
-    publication_datetime: true
+    publication_datetime: true,
+    checkbox: true
   })
   const [displayedCategories, setDisplayedCategories] = useState<string[]>([])
   const [scoresThresholds, setScoresThresholds] = useState<ScoresThresholds>({
@@ -167,6 +176,13 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   const [freqSortAsc, setFreqSortAsc] = useState(false)
   const [freqThreshold, setFreqThreshold] = useState(0)
   const [freqThresholdGT, setFreqThresholdGT] = useState(true)
+  const [selectedArticles, setSelectedArticles] = useState<string[]>([])
+  const [selectedArticle, setSelectedArticle] = useState<Article | undefined>()
+  const [tagsParameters, setTagsParameters] = useState<TagsParameters>({
+    highlight: true,
+    background: true,
+    color: true
+  })
 
 
   // initializing the web workers
@@ -346,7 +362,7 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
   const filteredWordFrequencies = useMemo(() => {
     let data: WordFrequency[] = JSON.parse(JSON.stringify(wordsFrequencies))
     // count threshold filter
-    if(freqThreshold !== 0 || !freqThresholdGT) {
+    if (freqThreshold !== 0 || !freqThresholdGT) {
       data = data.filter(d => (d.count > freqThreshold && freqThresholdGT) || (d.count < freqThreshold && !freqThresholdGT))
     }
     // sort by prop
@@ -379,9 +395,9 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
 
   // EDIT HERE... add your custom useState hook to store fetched data (see below).
 
-  const fetchArticles = (offset?: number, limit?: number) => {
+  const fetchArticles = (dbImportMode: DbImportMode, limit?: number, offset?: number, ) => {
     setLoading(true)
-    fetch(`/api/articles?offset=${offset || 0}&limit=${limit || 0}`)
+    fetch(`/api/articles?offset=${offset || 0}&limit=${limit || 0}&mode=${dbImportMode}`)
       .then((res) => res.json())
       .then(res => {
         setArticles(res.data?.resources || [])
@@ -449,6 +465,29 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
       const categories = (dataset.categories || []).filter(c => c.id !== item.id)
       updateData(`datasets/${uid}/${dataset.id}/categories`, categories)
     }
+  }
+
+  const updateArticle = (item: Article) => {
+    const articlesList: Article[] = JSON.parse(JSON.stringify(articles))
+    const i = articlesList.findIndex(e => e.id === item.id)
+    if (i >= 0) {
+      articlesList.splice(i, 1, item)
+      setArticles(articlesList)
+    }
+  }
+
+  const updateArticles = (items: Article[]) => {
+    const articlesList: Article[] = JSON.parse(JSON.stringify(articles))
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item) {
+        const index = articlesList.findIndex(e => e.id === item.id)
+        if (index >= 0) {
+          articlesList.splice(index, 1, item)
+        }
+      }
+    }
+    setArticles(articlesList)
   }
 
   // EDIT HERE... add your custom useState hook to store fetched data (see below).
@@ -584,7 +623,15 @@ export const DatabaseContextProvider = ({ children }: DefaultPageProps) => {
     freqThreshold,
     setFreqThreshold,
     freqThresholdGT,
-    setFreqThresholdGT
+    setFreqThresholdGT,
+    selectedArticles,
+    setSelectedArticles,
+    selectedArticle,
+    setSelectedArticle,
+    updateArticle,
+    updateArticles,
+    tagsParameters,
+    setTagsParameters
   }
 
   return (

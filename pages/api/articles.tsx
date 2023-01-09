@@ -11,13 +11,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const containerID = databaseID.container(container);
 
   // query
-   
+  const limit = req.query.limit
+  const offset = req.query.offset
+  const mode = req.query.mode
+
+  console.log(limit, offset, mode)
   let query = "SELECT * FROM c"
-  if(req.query.offset !== undefined && req.query.limit !== undefined && Number(req.query.limit) > 0) {
-    query += ` OFFSET ${req.query.offset} LIMIT ${req.query.limit}`
+  // mode
+  if (mode === "last_to_first") {
+    query += ` ORDER BY c.id DESC`
   }
-  else if(req.query.limit !== undefined && Number(req.query.limit) > 0) {
-    query += ` OFFSET 0 LIMIT ${req.query.limit}`
+
+  // limit / offset
+  if (req.query.offset !== undefined && limit !== undefined && Number(limit) > 0) {
+    query += ` OFFSET ${offset} LIMIT ${limit}`
+  }
+  else if (limit !== undefined && Number(limit) > 0) {
+    query += ` OFFSET 0 LIMIT ${limit}`
   }
 
   const querySpec = {

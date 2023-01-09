@@ -70,6 +70,7 @@ export default function DisplayOptionsPanel() {
         <Switch label="Language" checked={!!articleRowDetails.lang} onChange={(event) => handleChange('lang', event.currentTarget.checked)} />
         <Switch label="Sections length" checked={!!articleRowDetails.sections_length} onChange={(event) => handleChange('sections_length', event.currentTarget.checked)} />
         <Switch label="Publication date" checked={!!articleRowDetails.publication_datetime} onChange={(event) => handleChange('publication_datetime', event.currentTarget.checked)} />
+        <Switch label="Checkbox" checked={!!articleRowDetails.checkbox} onChange={(event) => handleChange('checkbox', event.currentTarget.checked)} />
       </div>
       <Stack my="md">
         <Radio.Group

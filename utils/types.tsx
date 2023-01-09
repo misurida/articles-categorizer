@@ -1,3 +1,5 @@
+import { MantineNumberSize } from "@mantine/core"
+
 export interface Article {
   id: string
   std: {
@@ -5,6 +7,7 @@ export interface Article {
     publication_datetime: string
     lang_code: string
     url: string
+    body?: string
   }
   non_std: {
     publisher_name: string
@@ -22,6 +25,8 @@ export interface Article {
       }
     }
   }
+  extracts?: TextPart[]
+  tags?: string[]
 }
 
 export interface ArticleRowDetails {
@@ -31,6 +36,7 @@ export interface ArticleRowDetails {
   publication_datetime?: boolean
   lang?: boolean
   sections_length?: boolean
+  checkbox?: boolean
 }
 
 export interface CategoryRowDetails {
@@ -75,6 +81,7 @@ export interface Category {
   rules: KeywordRule[]
   legacy_key?: string
   sections_weights?: Partial<Record<SectionName, number>>
+  quick_keywords?: string[]
 }
 
 export interface Dataset {
@@ -90,3 +97,65 @@ export interface WordFrequency {
   count: number
   index: number
 }
+
+export const textPartTypes = ['extract', 'keyword'] as const
+
+export type TextPartType = typeof textPartTypes[number]
+
+/**
+ * Object to be stored
+ */
+export type TextPart = {
+  text: string
+  id?: string
+  color?: string
+  categoryKey?: string
+  type?: TextPartType
+  start?: number
+  end?: number
+  section?: string
+}
+
+export type TextPartPooled = TextPart & {
+  typesPool?: TextPartType[] // computed on UI (not stored). Used to store multiple types.
+}
+
+export type TextPartPooledGroup = {
+  text: string
+  parts: TextPartPooled[]
+}
+
+/**
+ * Object to be displayed as span
+ */
+export type TextPartPos = {
+  text: string
+  id?: string
+  start?: number
+  end?: number
+  payload?: TextPart[]
+  open?: boolean
+}
+
+/**
+ * Simple position marker used by buildTextParts()
+ */
+export type TextPos = {
+  id: string
+  start: number
+  end: number
+}
+
+export type ArticleListAction = 'details' | 'check' | 'click' | 'select'
+
+export type ArticleSection = 'default' | 'processed'
+
+export interface TagsParameters {
+  highlight?: boolean
+  color?: boolean
+  background?: boolean
+  underline?: boolean
+  textSize?: MantineNumberSize
+}
+
+export type DbImportMode = 'first_to_last' | 'last_to_first' | 'random' 

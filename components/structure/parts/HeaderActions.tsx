@@ -4,7 +4,7 @@ import AuthForm from "../user/AuthForm";
 import router from "next/router";
 import { useDatabase } from "../../../hooks/useDatabase";
 import { useAuth } from "../../../hooks/useAuth";
-import { Dataset } from "../../../utils/types";
+import { Dataset, DbImportMode } from "../../../utils/types";
 import React, { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
 import { download, processFile, removeDuplicates, removeDuplicatesBy } from "../../../utils/helpers";
@@ -30,6 +30,7 @@ export default function HeaderActions() {
   const [dbLimit, setDbLimit] = useState<number | undefined>(100)
   const [dbOffset, setDbOffset] = useState<number | undefined>()
   const [load, setLoad] = useState(false)
+  const [dbImportMode, setDbImportMode] = useState<DbImportMode>("first_to_last")
 
   const datasetForm = useForm<Dataset>()
   const newDatasetForm = useForm<Dataset>({
@@ -165,7 +166,16 @@ export default function HeaderActions() {
                   onChange={setDbLimit}
                 />
               </Group>
-              <Menu.Item icon={<IconCloudDownload size={14} />} onClick={() => fetchArticles(dbOffset, dbLimit)}>Load {dbLimit || "all"} articles from DB</Menu.Item>
+              <Stack p={5} spacing={5}>
+                <Radio checked={dbImportMode === "first_to_last"} onChange={v => setDbImportMode('first_to_last')} label="First to last" />
+                <Radio checked={dbImportMode === "last_to_first"} onChange={v => setDbImportMode('last_to_first')} label="Last to first" />
+              </Stack>
+              <Menu.Item
+                icon={<IconCloudDownload size={14} />}
+                onClick={() => fetchArticles(dbImportMode, dbLimit, dbOffset)}
+              >
+                Load {dbLimit || "all"} articles from DB
+              </Menu.Item>
             </Menu.Dropdown>
           </Menu>
         </>
